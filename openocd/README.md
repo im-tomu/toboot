@@ -13,10 +13,13 @@ OpenOCD of course).
 
 I'm currently working on a set of scripts to make this much simpler, but at the
 moment setting up your Raspberry Pi has to be done manually. This includes
-compiling OpenOCD from source. The tutorial I used can be found
-[here][adafruit-tut], though setting up networking is out of scope for that
-tutorial. Follow the tutorial until the step after installing OpenOCD, at which
-point you should run this command:
+compiling OpenOCD from source (which can be done with the 
+[build-openocd.sh](build-openocd.sh) script). 
+
+The tutorial I used can be found [here][adafruit-tut], though setting up 
+networking is out of scope for that tutorial. Follow the tutorial until 
+the step after installing OpenOCD, at which point you should run
+this command:
 
 ```bash
 sudo cp raspberrypi*-native.cfg /usr/local/share/openocd/scripts/interface/
