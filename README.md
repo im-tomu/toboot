@@ -35,8 +35,9 @@ If you got your Tomu at LCA2017 or 33C3, or building your own Tomu board you
 will need to load the bootloader yourself.
 
 The recommend way to load the bootloader onto a Tomu board is using a RPi with
-OpenOCD. Instructions for doing this can be found in the [openocd](openocd)
-directory.
+[OpenOCD](http://openocd.org/). Instructions for doing this can be found in the
+[openocd](openocd) directory. You need OpenOCD **version 0.10.0 or later** to
+have EFM32HG support.
 
 ## Building
 
