@@ -141,7 +141,7 @@ __attribute__((noreturn)) static void boot_app(void)
     SCB->VTOR = (uint32_t)&appVectors[0];
 
     // Refresh watchdog right before launching app
-    #pragma warn "enable watchdog here"
+    watchdog_refresh();
 
     // Clear the boot token, so we don't repeatedly enter DFU mode.
     boot_token.magic = 0;
