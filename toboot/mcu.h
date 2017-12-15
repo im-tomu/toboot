@@ -166,12 +166,23 @@ typedef struct
   __I uint32_t  SYNCBUSY; /**< Synchronization Busy Register  */
 } RTC_TypeDef;
 
+ /** \brief  EFM32HG_WDOG Register Declaration
+  */
+typedef struct
+{
+  __IO uint32_t CTRL;     /**< Control Register  */
+  __IO uint32_t CMD;      /**< Command Register  */
+
+  __I uint32_t  SYNCBUSY; /**< Synchronization Busy Register  */
+} WDOG_TypeDef;
+
 /* Memory mapping of Cortex-M0+ Hardware */
 #define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Base Address */
 #define SysTick_BASE        (SCS_BASE +  0x0010UL)                    /*!< SysTick Base Address              */
 #define NVIC_BASE           (SCS_BASE +  0x0100UL)                    /*!< NVIC Base Address                 */
 #define SCB_BASE            (SCS_BASE +  0x0D00UL)                    /*!< System Control Block Base Address */
 #define RTC_BASE            (0x40080000UL)                            /*!< RTC Base Address                  */
+#define WDOG_BASE           (0x40088000UL)                            /*!< RTC Base Address                  */
 #define EMU_BASE            (0x400C6000UL)                            /*!< EMU Base Address                  */
 #define CMU_BASE            (0x400C8000UL)                            /*!< CMU Base Address                  */
 #define RMU_BASE            (0x400CA000UL)                            /*!< RMU Base Address                  */
@@ -180,6 +191,7 @@ typedef struct
 #define SysTick             ((SysTick_Type   *)     SysTick_BASE  )   /*!< SysTick configuration struct       */
 #define NVIC                ((NVIC_Type      *)     NVIC_BASE     )   /*!< NVIC configuration struct          */
 #define RTC                 ((RTC_TypeDef    *)     RTC_BASE      )   /*!< RTC configuration struct           */
+#define WDOG                ((WDOG_TypeDef   *)     WDOG_BASE     )   /*!< Watchdog configuration struct      */
 #define EMU                 ((EMU_TypeDef    *)     EMU_BASE      )   /*!< Energy Management Unit configuration struct */
 #define CMU                 ((CMU_TypeDef    *)     CMU_BASE      )   /*!< CMU configuration struct           */
 #define RMU                 ((RMU_TypeDef    *)     RMU_BASE      )   /*!< Reset Management Unit configuration struct */
@@ -495,6 +507,73 @@ typedef struct
 #define CMU_LFCLKSEL_LFBE_DISABLED                  (_CMU_LFCLKSEL_LFBE_DISABLED << 20)      /**< Shifted mode DISABLED for CMU_LFCLKSEL */
 #define CMU_LFCLKSEL_LFBE_ULFRCO                    (_CMU_LFCLKSEL_LFBE_ULFRCO << 20)        /**< Shifted mode ULFRCO for CMU_LFCLKSEL */
 
+/* Bit fields for CMU SYNCBUSY */
+#define _CMU_SYNCBUSY_RESETVALUE                    0x00000000UL                           /**< Default value for CMU_SYNCBUSY */
+#define _CMU_SYNCBUSY_MASK                          0x00000155UL                           /**< Mask for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFACLKEN0                      (0x1UL << 0)                           /**< Low Frequency A Clock Enable 0 Busy */
+#define _CMU_SYNCBUSY_LFACLKEN0_SHIFT               0                                      /**< Shift value for CMU_LFACLKEN0 */
+#define _CMU_SYNCBUSY_LFACLKEN0_MASK                0x1UL                                  /**< Bit mask for CMU_LFACLKEN0 */
+#define _CMU_SYNCBUSY_LFACLKEN0_DEFAULT             0x00000000UL                           /**< Mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFACLKEN0_DEFAULT              (_CMU_SYNCBUSY_LFACLKEN0_DEFAULT << 0) /**< Shifted mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFAPRESC0                      (0x1UL << 2)                           /**< Low Frequency A Prescaler 0 Busy */
+#define _CMU_SYNCBUSY_LFAPRESC0_SHIFT               2                                      /**< Shift value for CMU_LFAPRESC0 */
+#define _CMU_SYNCBUSY_LFAPRESC0_MASK                0x4UL                                  /**< Bit mask for CMU_LFAPRESC0 */
+#define _CMU_SYNCBUSY_LFAPRESC0_DEFAULT             0x00000000UL                           /**< Mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFAPRESC0_DEFAULT              (_CMU_SYNCBUSY_LFAPRESC0_DEFAULT << 2) /**< Shifted mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFBCLKEN0                      (0x1UL << 4)                           /**< Low Frequency B Clock Enable 0 Busy */
+#define _CMU_SYNCBUSY_LFBCLKEN0_SHIFT               4                                      /**< Shift value for CMU_LFBCLKEN0 */
+#define _CMU_SYNCBUSY_LFBCLKEN0_MASK                0x10UL                                 /**< Bit mask for CMU_LFBCLKEN0 */
+#define _CMU_SYNCBUSY_LFBCLKEN0_DEFAULT             0x00000000UL                           /**< Mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFBCLKEN0_DEFAULT              (_CMU_SYNCBUSY_LFBCLKEN0_DEFAULT << 4) /**< Shifted mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFBPRESC0                      (0x1UL << 6)                           /**< Low Frequency B Prescaler 0 Busy */
+#define _CMU_SYNCBUSY_LFBPRESC0_SHIFT               6                                      /**< Shift value for CMU_LFBPRESC0 */
+#define _CMU_SYNCBUSY_LFBPRESC0_MASK                0x40UL                                 /**< Bit mask for CMU_LFBPRESC0 */
+#define _CMU_SYNCBUSY_LFBPRESC0_DEFAULT             0x00000000UL                           /**< Mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFBPRESC0_DEFAULT              (_CMU_SYNCBUSY_LFBPRESC0_DEFAULT << 6) /**< Shifted mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFCCLKEN0                      (0x1UL << 8)                           /**< Low Frequency C Clock Enable 0 Busy */
+#define _CMU_SYNCBUSY_LFCCLKEN0_SHIFT               8                                      /**< Shift value for CMU_LFCCLKEN0 */
+#define _CMU_SYNCBUSY_LFCCLKEN0_MASK                0x100UL                                /**< Bit mask for CMU_LFCCLKEN0 */
+#define _CMU_SYNCBUSY_LFCCLKEN0_DEFAULT             0x00000000UL                           /**< Mode DEFAULT for CMU_SYNCBUSY */
+#define CMU_SYNCBUSY_LFCCLKEN0_DEFAULT              (_CMU_SYNCBUSY_LFCCLKEN0_DEFAULT << 8) /**< Shifted mode DEFAULT for CMU_SYNCBUSY */
+
+/* Bit fields for CMU CMD */
+#define _CMU_CMD_RESETVALUE                         0x00000000UL                         /**< Default value for CMU_CMD */
+#define _CMU_CMD_MASK                               0x000000FFUL                         /**< Mask for CMU_CMD */
+#define _CMU_CMD_HFCLKSEL_SHIFT                     0                                    /**< Shift value for CMU_HFCLKSEL */
+#define _CMU_CMD_HFCLKSEL_MASK                      0x7UL                                /**< Bit mask for CMU_HFCLKSEL */
+#define _CMU_CMD_HFCLKSEL_DEFAULT                   0x00000000UL                         /**< Mode DEFAULT for CMU_CMD */
+#define _CMU_CMD_HFCLKSEL_HFRCO                     0x00000001UL                         /**< Mode HFRCO for CMU_CMD */
+#define _CMU_CMD_HFCLKSEL_HFXO                      0x00000002UL                         /**< Mode HFXO for CMU_CMD */
+#define _CMU_CMD_HFCLKSEL_LFRCO                     0x00000003UL                         /**< Mode LFRCO for CMU_CMD */
+#define _CMU_CMD_HFCLKSEL_LFXO                      0x00000004UL                         /**< Mode LFXO for CMU_CMD */
+#define _CMU_CMD_HFCLKSEL_USHFRCODIV2               0x00000005UL                         /**< Mode USHFRCODIV2 for CMU_CMD */
+#define CMU_CMD_HFCLKSEL_DEFAULT                    (_CMU_CMD_HFCLKSEL_DEFAULT << 0)     /**< Shifted mode DEFAULT for CMU_CMD */
+#define CMU_CMD_HFCLKSEL_HFRCO                      (_CMU_CMD_HFCLKSEL_HFRCO << 0)       /**< Shifted mode HFRCO for CMU_CMD */
+#define CMU_CMD_HFCLKSEL_HFXO                       (_CMU_CMD_HFCLKSEL_HFXO << 0)        /**< Shifted mode HFXO for CMU_CMD */
+#define CMU_CMD_HFCLKSEL_LFRCO                      (_CMU_CMD_HFCLKSEL_LFRCO << 0)       /**< Shifted mode LFRCO for CMU_CMD */
+#define CMU_CMD_HFCLKSEL_LFXO                       (_CMU_CMD_HFCLKSEL_LFXO << 0)        /**< Shifted mode LFXO for CMU_CMD */
+#define CMU_CMD_HFCLKSEL_USHFRCODIV2                (_CMU_CMD_HFCLKSEL_USHFRCODIV2 << 0) /**< Shifted mode USHFRCODIV2 for CMU_CMD */
+#define CMU_CMD_CALSTART                            (0x1UL << 3)                         /**< Calibration Start */
+#define _CMU_CMD_CALSTART_SHIFT                     3                                    /**< Shift value for CMU_CALSTART */
+#define _CMU_CMD_CALSTART_MASK                      0x8UL                                /**< Bit mask for CMU_CALSTART */
+#define _CMU_CMD_CALSTART_DEFAULT                   0x00000000UL                         /**< Mode DEFAULT for CMU_CMD */
+#define CMU_CMD_CALSTART_DEFAULT                    (_CMU_CMD_CALSTART_DEFAULT << 3)     /**< Shifted mode DEFAULT for CMU_CMD */
+#define CMU_CMD_CALSTOP                             (0x1UL << 4)                         /**< Calibration Stop */
+#define _CMU_CMD_CALSTOP_SHIFT                      4                                    /**< Shift value for CMU_CALSTOP */
+#define _CMU_CMD_CALSTOP_MASK                       0x10UL                               /**< Bit mask for CMU_CALSTOP */
+#define _CMU_CMD_CALSTOP_DEFAULT                    0x00000000UL                         /**< Mode DEFAULT for CMU_CMD */
+#define CMU_CMD_CALSTOP_DEFAULT                     (_CMU_CMD_CALSTOP_DEFAULT << 4)      /**< Shifted mode DEFAULT for CMU_CMD */
+#define _CMU_CMD_USBCCLKSEL_SHIFT                   5                                    /**< Shift value for CMU_USBCCLKSEL */
+#define _CMU_CMD_USBCCLKSEL_MASK                    0xE0UL                               /**< Bit mask for CMU_USBCCLKSEL */
+#define _CMU_CMD_USBCCLKSEL_DEFAULT                 0x00000000UL                         /**< Mode DEFAULT for CMU_CMD */
+#define _CMU_CMD_USBCCLKSEL_LFXO                    0x00000002UL                         /**< Mode LFXO for CMU_CMD */
+#define _CMU_CMD_USBCCLKSEL_LFRCO                   0x00000003UL                         /**< Mode LFRCO for CMU_CMD */
+#define _CMU_CMD_USBCCLKSEL_USHFRCO                 0x00000004UL                         /**< Mode USHFRCO for CMU_CMD */
+#define CMU_CMD_USBCCLKSEL_DEFAULT                  (_CMU_CMD_USBCCLKSEL_DEFAULT << 5)   /**< Shifted mode DEFAULT for CMU_CMD */
+#define CMU_CMD_USBCCLKSEL_LFXO                     (_CMU_CMD_USBCCLKSEL_LFXO << 5)      /**< Shifted mode LFXO for CMU_CMD */
+#define CMU_CMD_USBCCLKSEL_LFRCO                    (_CMU_CMD_USBCCLKSEL_LFRCO << 5)     /**< Shifted mode LFRCO for CMU_CMD */
+#define CMU_CMD_USBCCLKSEL_USHFRCO                  (_CMU_CMD_USBCCLKSEL_USHFRCO << 5)   /**< Shifted mode USHFRCO for CMU_CMD */
+
 /* Bit fields for RMU CTRL */
 #define _RMU_CTRL_RESETVALUE                 0x00000000UL                        /**< Default value for RMU_CTRL */
 #define _RMU_CTRL_MASK                       0x00000001UL                        /**< Mask for RMU_CTRL */
@@ -774,10 +853,89 @@ typedef struct
 #define _RTC_SYNCBUSY_COMP1_DEFAULT      0x00000000UL                       /**< Mode DEFAULT for RTC_SYNCBUSY */
 #define RTC_SYNCBUSY_COMP1_DEFAULT       (_RTC_SYNCBUSY_COMP1_DEFAULT << 2) /**< Shifted mode DEFAULT for RTC_SYNCBUSY */
 
+/* Bit fields for WDOG CTRL */
+#define _WDOG_CTRL_RESETVALUE            0x00000F00UL                         /**< Default value for WDOG_CTRL */
+#define _WDOG_CTRL_MASK                  0x00003F7FUL                         /**< Mask for WDOG_CTRL */
+#define WDOG_CTRL_EN                     (0x1UL << 0)                         /**< Watchdog Timer Enable */
+#define _WDOG_CTRL_EN_SHIFT              0                                    /**< Shift value for WDOG_EN */
+#define _WDOG_CTRL_EN_MASK               0x1UL                                /**< Bit mask for WDOG_EN */
+#define _WDOG_CTRL_EN_DEFAULT            0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_EN_DEFAULT             (_WDOG_CTRL_EN_DEFAULT << 0)         /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_DEBUGRUN               (0x1UL << 1)                         /**< Debug Mode Run Enable */
+#define _WDOG_CTRL_DEBUGRUN_SHIFT        1                                    /**< Shift value for WDOG_DEBUGRUN */
+#define _WDOG_CTRL_DEBUGRUN_MASK         0x2UL                                /**< Bit mask for WDOG_DEBUGRUN */
+#define _WDOG_CTRL_DEBUGRUN_DEFAULT      0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_DEBUGRUN_DEFAULT       (_WDOG_CTRL_DEBUGRUN_DEFAULT << 1)   /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_EM2RUN                 (0x1UL << 2)                         /**< Energy Mode 2 Run Enable */
+#define _WDOG_CTRL_EM2RUN_SHIFT          2                                    /**< Shift value for WDOG_EM2RUN */
+#define _WDOG_CTRL_EM2RUN_MASK           0x4UL                                /**< Bit mask for WDOG_EM2RUN */
+#define _WDOG_CTRL_EM2RUN_DEFAULT        0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_EM2RUN_DEFAULT         (_WDOG_CTRL_EM2RUN_DEFAULT << 2)     /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_EM3RUN                 (0x1UL << 3)                         /**< Energy Mode 3 Run Enable */
+#define _WDOG_CTRL_EM3RUN_SHIFT          3                                    /**< Shift value for WDOG_EM3RUN */
+#define _WDOG_CTRL_EM3RUN_MASK           0x8UL                                /**< Bit mask for WDOG_EM3RUN */
+#define _WDOG_CTRL_EM3RUN_DEFAULT        0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_EM3RUN_DEFAULT         (_WDOG_CTRL_EM3RUN_DEFAULT << 3)     /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_LOCK                   (0x1UL << 4)                         /**< Configuration lock */
+#define _WDOG_CTRL_LOCK_SHIFT            4                                    /**< Shift value for WDOG_LOCK */
+#define _WDOG_CTRL_LOCK_MASK             0x10UL                               /**< Bit mask for WDOG_LOCK */
+#define _WDOG_CTRL_LOCK_DEFAULT          0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_LOCK_DEFAULT           (_WDOG_CTRL_LOCK_DEFAULT << 4)       /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_EM4BLOCK               (0x1UL << 5)                         /**< Energy Mode 4 Block */
+#define _WDOG_CTRL_EM4BLOCK_SHIFT        5                                    /**< Shift value for WDOG_EM4BLOCK */
+#define _WDOG_CTRL_EM4BLOCK_MASK         0x20UL                               /**< Bit mask for WDOG_EM4BLOCK */
+#define _WDOG_CTRL_EM4BLOCK_DEFAULT      0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_EM4BLOCK_DEFAULT       (_WDOG_CTRL_EM4BLOCK_DEFAULT << 5)   /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_SWOSCBLOCK             (0x1UL << 6)                         /**< Software Oscillator Disable Block */
+#define _WDOG_CTRL_SWOSCBLOCK_SHIFT      6                                    /**< Shift value for WDOG_SWOSCBLOCK */
+#define _WDOG_CTRL_SWOSCBLOCK_MASK       0x40UL                               /**< Bit mask for WDOG_SWOSCBLOCK */
+#define _WDOG_CTRL_SWOSCBLOCK_DEFAULT    0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_SWOSCBLOCK_DEFAULT     (_WDOG_CTRL_SWOSCBLOCK_DEFAULT << 6) /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define _WDOG_CTRL_PERSEL_SHIFT          8                                    /**< Shift value for WDOG_PERSEL */
+#define _WDOG_CTRL_PERSEL_MASK           0xF00UL                              /**< Bit mask for WDOG_PERSEL */
+#define _WDOG_CTRL_PERSEL_DEFAULT        0x0000000FUL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_PERSEL_DEFAULT         (_WDOG_CTRL_PERSEL_DEFAULT << 8)     /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define _WDOG_CTRL_CLKSEL_SHIFT          12                                   /**< Shift value for WDOG_CLKSEL */
+#define _WDOG_CTRL_CLKSEL_MASK           0x3000UL                             /**< Bit mask for WDOG_CLKSEL */
+#define _WDOG_CTRL_CLKSEL_DEFAULT        0x00000000UL                         /**< Mode DEFAULT for WDOG_CTRL */
+#define _WDOG_CTRL_CLKSEL_ULFRCO         0x00000000UL                         /**< Mode ULFRCO for WDOG_CTRL */
+#define _WDOG_CTRL_CLKSEL_LFRCO          0x00000001UL                         /**< Mode LFRCO for WDOG_CTRL */
+#define _WDOG_CTRL_CLKSEL_LFXO           0x00000002UL                         /**< Mode LFXO for WDOG_CTRL */
+#define WDOG_CTRL_CLKSEL_DEFAULT         (_WDOG_CTRL_CLKSEL_DEFAULT << 12)    /**< Shifted mode DEFAULT for WDOG_CTRL */
+#define WDOG_CTRL_CLKSEL_ULFRCO          (_WDOG_CTRL_CLKSEL_ULFRCO << 12)     /**< Shifted mode ULFRCO for WDOG_CTRL */
+#define WDOG_CTRL_CLKSEL_LFRCO           (_WDOG_CTRL_CLKSEL_LFRCO << 12)      /**< Shifted mode LFRCO for WDOG_CTRL */
+#define WDOG_CTRL_CLKSEL_LFXO            (_WDOG_CTRL_CLKSEL_LFXO << 12)       /**< Shifted mode LFXO for WDOG_CTRL */
+
+/* Bit fields for WDOG CMD */
+#define _WDOG_CMD_RESETVALUE             0x00000000UL                     /**< Default value for WDOG_CMD */
+#define _WDOG_CMD_MASK                   0x00000001UL                     /**< Mask for WDOG_CMD */
+#define WDOG_CMD_CLEAR                   (0x1UL << 0)                     /**< Watchdog Timer Clear */
+#define _WDOG_CMD_CLEAR_SHIFT            0                                /**< Shift value for WDOG_CLEAR */
+#define _WDOG_CMD_CLEAR_MASK             0x1UL                            /**< Bit mask for WDOG_CLEAR */
+#define _WDOG_CMD_CLEAR_DEFAULT          0x00000000UL                     /**< Mode DEFAULT for WDOG_CMD */
+#define _WDOG_CMD_CLEAR_UNCHANGED        0x00000000UL                     /**< Mode UNCHANGED for WDOG_CMD */
+#define _WDOG_CMD_CLEAR_CLEARED          0x00000001UL                     /**< Mode CLEARED for WDOG_CMD */
+#define WDOG_CMD_CLEAR_DEFAULT           (_WDOG_CMD_CLEAR_DEFAULT << 0)   /**< Shifted mode DEFAULT for WDOG_CMD */
+#define WDOG_CMD_CLEAR_UNCHANGED         (_WDOG_CMD_CLEAR_UNCHANGED << 0) /**< Shifted mode UNCHANGED for WDOG_CMD */
+#define WDOG_CMD_CLEAR_CLEARED           (_WDOG_CMD_CLEAR_CLEARED << 0)   /**< Shifted mode CLEARED for WDOG_CMD */
+
+/* Bit fields for WDOG SYNCBUSY */
+#define _WDOG_SYNCBUSY_RESETVALUE        0x00000000UL                       /**< Default value for WDOG_SYNCBUSY */
+#define _WDOG_SYNCBUSY_MASK              0x00000003UL                       /**< Mask for WDOG_SYNCBUSY */
+#define WDOG_SYNCBUSY_CTRL               (0x1UL << 0)                       /**< CTRL Register Busy */
+#define _WDOG_SYNCBUSY_CTRL_SHIFT        0                                  /**< Shift value for WDOG_CTRL */
+#define _WDOG_SYNCBUSY_CTRL_MASK         0x1UL                              /**< Bit mask for WDOG_CTRL */
+#define _WDOG_SYNCBUSY_CTRL_DEFAULT      0x00000000UL                       /**< Mode DEFAULT for WDOG_SYNCBUSY */
+#define WDOG_SYNCBUSY_CTRL_DEFAULT       (_WDOG_SYNCBUSY_CTRL_DEFAULT << 0) /**< Shifted mode DEFAULT for WDOG_SYNCBUSY */
+#define WDOG_SYNCBUSY_CMD                (0x1UL << 1)                       /**< CMD Register Busy */
+#define _WDOG_SYNCBUSY_CMD_SHIFT         1                                  /**< Shift value for WDOG_CMD */
+#define _WDOG_SYNCBUSY_CMD_MASK          0x2UL                              /**< Bit mask for WDOG_CMD */
+#define _WDOG_SYNCBUSY_CMD_DEFAULT       0x00000000UL                       /**< Mode DEFAULT for WDOG_SYNCBUSY */
+#define WDOG_SYNCBUSY_CMD_DEFAULT        (_WDOG_SYNCBUSY_CMD_DEFAULT << 1)  /**< Shifted mode DEFAULT for WDOG_SYNCBUSY */
+
 /** LFRCO frequency, tuned to below frequency during manufacturing. */
 #define EFM32_LFRCO_FREQ  (32768UL)
 #define EFM32_ULFRCO_FREQ (1000UL)
-
 
 /** \brief  Enable IRQ Interrupts
   This function enables IRQ interrupts by clearing the I-bit in the CPSR.
