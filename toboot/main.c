@@ -40,13 +40,28 @@ void __early_init(void) {
     // Enable peripheral clocks.
     CMU->HFPERCLKDIV = CMU_HFPERCLKDIV_HFPERCLKEN;
     CMU->HFPERCLKEN0 = CMU_HFPERCLKEN0_GPIO | BOOTLOADER_USART_CLOCKEN
-                     | AUTOBAUD_TIMER_CLOCK ;
+                     | AUTOBAUD_TIMER_CLOCK;
 
     // Enable LE and DMA interfaces.
     CMU->HFCORECLKEN0 = CMU_HFCORECLKEN0_LE | CMU_HFCORECLKEN0_DMA;
 
     // Setup LFA/LFB clock sources.
     CMU->LFCLKSEL = CMU_LFCLKSEL_LFA_LFRCO | CMU_LFCLKSEL_LFB_HFCORECLKLEDIV2;
+
+    // Set the main CPU clock to run from USB
+    CMU->LFCLKSEL = (CMU->LFCLKSEL & ~_CMU_LFCLKSEL_LFC_MASK)
+                  | CMU_LFCLKSEL_LFC_LFRCO;
+    CMU->LFCCLKEN0 |= CMU_LFCCLKEN0_USBLE;
+
+    // Calibrate USB based on communications
+    CMU->USHFRCOCONF = CMU_USHFRCOCONF_BAND_48MHZ;
+    //CMU_ClockSelectSet( cmuClock_USBC, cmuSelect_USHFRCO );
+
+    // Enable USHFRCO Clock Recovery mode.
+    CMU->USBCRCTRL |= CMU_USBCRCTRL_EN;
+
+    // Turn on Low Energy Mode (LEM) features.
+    USB->CTRL |= USB_CTRL_LEMIDLEEN | USB_CTRL_LEMPHYCTRL;
 
     start_rtc();
 }
