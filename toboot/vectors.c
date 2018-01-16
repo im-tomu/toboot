@@ -1,7 +1,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "mcu.h"
+
+#ifndef CORTEX_NUM_VECTORS
 #define CORTEX_NUM_VECTORS 32
+#endif
 
 /**
  * @brief   Type of an IRQ vector.
