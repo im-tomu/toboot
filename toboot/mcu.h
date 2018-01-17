@@ -4175,9 +4175,26 @@ typedef struct
 /** LFRCO frequency, tuned to below frequency during manufacturing. */
 #define EFM32_LFRCO_FREQ  (32768UL)
 #define EFM32_ULFRCO_FREQ (1000UL)
+#define DEPCTL_WO_BITMASK 0x3c000000UL
 #define DCTL_WO_BITMASK \
           (_USB_DCTL_CGOUTNAK_MASK  | _USB_DCTL_SGOUTNAK_MASK | \
            _USB_DCTL_CGNPINNAK_MASK | _USB_DCTL_SGNPINNAK_MASK)
+#define USB_DINEPS   ((USB_DIEP_TypeDef *) &USB->DIEP0CTL)
+#define USB_DOUTEPS  ((USB_DOEP_TypeDef *) &USB->DOEP0CTL)
+#define USB_FIFOS    ((uint32_t *) &USB->FIFO0D)
+#define USB_DIEPTXFS ((uint32_t *) &USB->DIEPTXF1)
+
+/* Limits imposed by the USB peripheral */
+#define NP_RX_QUE_DEPTH       8
+#define HP_RX_QUE_DEPTH       8
+#define MAX_XFER_LEN          524287L         /* 2^19 - 1 bytes */
+#define MAX_PACKETS_PR_XFER   1023            /* 2^10 - 1 packets */
+#define MAX_NUM_TX_FIFOS      3               /* In addition to EP0 Tx FIFO */
+#define MAX_NUM_IN_EPS        3               /* In addition to EP0 */
+#define MAX_NUM_OUT_EPS       3               /* In addition to EP0 */
+#define MAX_DEVICE_FIFO_SIZE_INWORDS 384U
+#define MIN_EP_FIFO_SIZE_INWORDS  16U         /* Unit is words (32bit) */
+#define MIN_EP_FIFO_SIZE_INBYTES  64U         /* Unit is bytes (8bit) */
 
 /** \brief  Enable IRQ Interrupts
   This function enables IRQ interrupts by clearing the I-bit in the CPSR.
