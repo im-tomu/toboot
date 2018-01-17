@@ -47,6 +47,7 @@ void __early_init(void)
     // Enable peripheral clocks.
     CMU->HFPERCLKDIV = CMU_HFPERCLKDIV_HFPERCLKEN;
     CMU->HFPERCLKEN0 = CMU_HFPERCLKEN0_GPIO | BOOTLOADER_USART_CLOCKEN | AUTOBAUD_TIMER_CLOCK;
+    CMU->HFPERCLKDIV = 1 << 8;
 
     // Enable LE and DMA interfaces.
     CMU->HFCORECLKEN0 = CMU_HFCORECLKEN0_LE | CMU_HFCORECLKEN0_DMA;
@@ -67,6 +68,17 @@ void __early_init(void)
 
     // Turn on Low Energy Mode (LEM) features.
     USB->CTRL |= USB_CTRL_LEMIDLEEN | USB_CTRL_LEMPHYCTRL;
+
+    /* Set HFRCO freq 21 MHz */
+    CMU->HFRCOCTRL = (4 << 8) | (DEVINFO->HFRCOCAL1 & 0xff << 0);
+
+    CMU->OSCENCMD = CMU_OSCENCMD_HFRCOEN;
+    while (!(CMU->STATUS & CMU_STATUS_HFRCORDY))
+        ;
+
+    CMU->CMD |= CMU_CMD_HFCLKSEL_HFRCO;
+    while ((CMU->STATUS & CMU_STATUS_HFRCOSEL) == 0)
+        ;
 
     // Mux things
 
