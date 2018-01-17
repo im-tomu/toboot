@@ -399,7 +399,7 @@ efm32hg_ep_in_stall(uint8_t n)
         USB_DINEPS[n].CTL = ctl;
     }
 }
-
+/*
 static void
 efm32hg_ep_out_unstall(uint8_t n)
 {
@@ -451,6 +451,7 @@ efm32hg_ep_out_is_disabled(uint8_t n)
 {
     return (USB_DOUTEPS[n].CTL & USB_DOEP_CTL_EPENA) ? 0 : 1;
 }
+*/
 
 static void
 handle_datastage_out(struct usb_dev *dev)
@@ -608,8 +609,7 @@ handle_out0(struct usb_dev *dev)
     return 0 /*USB_EVENT_OK*/;
 }
 
-static int
-handle_setup0(struct usb_dev *dev)
+static int usb_setup(struct usb_dev *dev)
 {
     const uint8_t *data = NULL;
     uint32_t datalen = 0;
@@ -618,7 +618,7 @@ handle_setup0(struct usb_dev *dev)
     switch (dev->dev_req.wRequestAndType)
     {
     case 0x0500: // SET_ADDRESS
-        efm32hg_set_daddr (dev->dev_req.wValue);
+        efm32hg_set_daddr(dev->dev_req.wValue);
         break;
     case 0x0900: // SET_CONFIGURATION
         usb_configuration = dev->dev_req.wValue;
@@ -659,6 +659,19 @@ handle_setup0(struct usb_dev *dev)
         }
         usb_lld_ctrl_error(dev);
         return 0;
+
+    case (MSFT_VENDOR_CODE << 8) | 0xC0: // Get Microsoft descriptor
+    case (MSFT_VENDOR_CODE << 8) | 0xC1:
+        if (dev->dev_req.wIndex == 0x0004)
+        {
+            // Return WCID descriptor
+            data = usb_microsoft_wcid;
+            datalen = MSFT_WCID_LEN;
+            break;
+        }
+        usb_lld_ctrl_error(dev);
+        return 0;
+
     default:
         usb_lld_ctrl_error(dev);
         return 0;
@@ -669,6 +682,7 @@ send:
         usb_lld_ctrl_send(dev, data, datalen);
     else
         usb_lld_ctrl_ack(dev);
+    return 0;
 }
 
 static int
@@ -781,10 +795,10 @@ void USB_Handler(void)
                             int supcnt = (USB->DOEP0TSIZ & 0x60000000UL) >> 29;
                             supcnt = (supcnt == 3) ? 2 : supcnt;
                             dev->dev_req = ep0_setup_pkt[2 - supcnt];
-                            /*r = */ handle_setup0(dev);
+                            usb_setup(dev);
                         }
                         else if (dev->state != WAIT_SETUP)
-                            /*r = */ handle_out0(dev);
+                            handle_out0(dev);
                     }
                     else /* ep != 0 */
                     {
@@ -806,7 +820,7 @@ void USB_Handler(void)
                         int supcnt = (USB->DOEP0TSIZ & 0x60000000UL) >> 29;
                         supcnt = (supcnt == 3) ? 2 : supcnt;
                         dev->dev_req = ep0_setup_pkt[2 - supcnt];
-                        /*r = */ handle_setup0(dev);
+                        usb_setup(dev);
                     }
                 }
 

@@ -64,17 +64,14 @@ struct usb_dev
 };
 extern struct usb_dev *dev;
 
-#define USB_SETUP_SET(req) ((req & REQUEST_DIR) == 0)
-#define USB_SETUP_GET(req) ((req & REQUEST_DIR) != 0)
-
 #define NUM_USB_BUFFERS           8
 #define VENDOR_ID                 0x1d50    // OpenMoko
 #define PRODUCT_ID                0x6082    // Assigned to Fadecandy project for DFU Bootloader
 #define DEVICE_VER                0x0101    // Bootloader version
-#define MANUFACTURER_NAME         {'s','c','a','n','l','i','m','e'}
-#define MANUFACTURER_NAME_LEN     8
-#define PRODUCT_NAME              {'F','a','d','e','c','a','n','d','y',' ','B','o','o','t','l','o','a','d','e','r'}
-#define PRODUCT_NAME_LEN          20
+#define MANUFACTURER_NAME         {'x','o', 'b', 's'}
+#define MANUFACTURER_NAME_LEN     4
+#define PRODUCT_NAME              {'T','o','m','u',' ','B','o','o','t','l','o','a','d','e','r'}
+#define PRODUCT_NAME_LEN          15
 #define EP0_SIZE                  64
 #define NUM_INTERFACE             1
 #define CONFIG_DESC_SIZE          (9+9+9)
