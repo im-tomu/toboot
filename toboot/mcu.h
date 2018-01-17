@@ -127,6 +127,31 @@ typedef struct
   __IO uint32_t USHFRCOCONF;   /**< USHFRCO Configuration  */
 } CMU_TypeDef;
 
+/**
+ * \brief  Device info
+ */
+typedef struct
+{
+  __I uint32_t CAL;          /**< Calibration temperature and checksum */
+  __I uint32_t ADC0CAL0;     /**< ADC0 Calibration register 0 */
+  __I uint32_t ADC0CAL1;     /**< ADC0 Calibration register 1 */
+  __I uint32_t ADC0CAL2;     /**< ADC0 Calibration register 2 */
+  uint32_t     RESERVED0[2]; /**< Reserved */
+  __I uint32_t IDAC0CAL0;    /**< IDAC0 calibration register */
+  __I uint32_t USHFRCOCAL0;  /**< USHFRCO calibration register */
+  uint32_t     RESERVED1[1]; /**< Reserved */
+  __I uint32_t AUXHFRCOCAL0; /**< AUXHFRCO calibration register 0 */
+  __I uint32_t AUXHFRCOCAL1; /**< AUXHFRCO calibration register 1 */
+  __I uint32_t HFRCOCAL0;    /**< HFRCO calibration register 0 */
+  __I uint32_t HFRCOCAL1;    /**< HFRCO calibration register 1 */
+  __I uint32_t MEMINFO;      /**< Memory information */
+  uint32_t     RESERVED2[2]; /**< Reserved */
+  __I uint32_t UNIQUEL;      /**< Low 32 bits of device unique number */
+  __I uint32_t UNIQUEH;      /**< High 32 bits of device unique number */
+  __I uint32_t MSIZE;        /**< Flash and SRAM Memory size in KiloBytes */
+  __I uint32_t PART;         /**< Part description */
+} DEVINFO_TypeDef;
+
 /** \brief  EFM32HG_RMU Register Declaration
  */
 typedef struct
@@ -331,6 +356,19 @@ typedef struct
   __I uint32_t   EM4WUCAUSE;    /**< EM4 Wake-up Cause Register  */
 } GPIO_TypeDef;
 
+typedef struct
+{
+  volatile const uint32_t PID4;        /* JEP_106_BANK */
+  volatile const uint32_t PID5;        /* Unused */
+  volatile const uint32_t PID6;        /* Unused */
+  volatile const uint32_t PID7;        /* Unused */
+  volatile const uint32_t PID0;        /* Chip family LSB, chip major revision */
+  volatile const uint32_t PID1;        /* JEP_106_NO, Chip family MSB */
+  volatile const uint32_t PID2;        /* Chip minor rev MSB, JEP_106_PRESENT, JEP_106_NO */
+  volatile const uint32_t PID3;        /* Chip minor rev LSB */
+  volatile const uint32_t CID0;        /* Unused */
+} ROMTABLE_TypeDef;
+
 /* Memory mapping of Cortex-M0+ Hardware */
 #define SCS_BASE            (0xE000E000UL)                            /*!< System Control Space Base Address */
 #define SysTick_BASE        (SCS_BASE +  0x0010UL)                    /*!< SysTick Base Address              */
@@ -343,6 +381,8 @@ typedef struct
 #define EMU_BASE            (0x400C6000UL)                            /*!< EMU Base Address                  */
 #define CMU_BASE            (0x400C8000UL)                            /*!< CMU Base Address                  */
 #define RMU_BASE            (0x400CA000UL)                            /*!< RMU Base Address                  */
+#define ROMTABLE_BASE       (0xF00FFFD0UL)                            /*!< ROMTABLE Base Address             */
+#define DEVINFO_BASE        (0x0FE081B0UL)                            /*!< DEVINFO base address              */
 
 #define SysTick             ((SysTick_Type   *)     SysTick_BASE  )   /*!< SysTick configuration struct       */
 #define NVIC                ((NVIC_Type      *)     NVIC_BASE     )   /*!< NVIC configuration struct          */
@@ -354,6 +394,8 @@ typedef struct
 #define EMU                 ((EMU_TypeDef    *)     EMU_BASE      )   /*!< Energy Management Unit configuration struct */
 #define CMU                 ((CMU_TypeDef    *)     CMU_BASE      )   /*!< CMU configuration struct           */
 #define RMU                 ((RMU_TypeDef    *)     RMU_BASE      )   /*!< Reset Management Unit configuration struct */
+#define ROMTABLE            ((ROMTABLE_TypeDef *)   ROMTABLE_BASE )   /*!< ROMTABLE struct                    */
+#define DEVINFO             ((DEVINFO_TypeDef *)    DEVINFO_BASE  )   /*!< Device information struct          */
 
 /* Bit fields for CMU HFPERCLKEN0 */
 #define _CMU_HFPERCLKEN0_RESETVALUE                 0x00000000UL                           /**< Default value for CMU_HFPERCLKEN0 */
@@ -665,6 +707,125 @@ typedef struct
 #define CMU_LFCLKSEL_LFBE_DEFAULT                   (_CMU_LFCLKSEL_LFBE_DEFAULT << 20)       /**< Shifted mode DEFAULT for CMU_LFCLKSEL */
 #define CMU_LFCLKSEL_LFBE_DISABLED                  (_CMU_LFCLKSEL_LFBE_DISABLED << 20)      /**< Shifted mode DISABLED for CMU_LFCLKSEL */
 #define CMU_LFCLKSEL_LFBE_ULFRCO                    (_CMU_LFCLKSEL_LFBE_ULFRCO << 20)        /**< Shifted mode ULFRCO for CMU_LFCLKSEL */
+
+/* Bit fields for CMU STATUS */
+#define _CMU_STATUS_RESETVALUE                      0x00000403UL                               /**< Default value for CMU_STATUS */
+#define _CMU_STATUS_MASK                            0x04F77FFFUL                               /**< Mask for CMU_STATUS */
+#define CMU_STATUS_HFRCOENS                         (0x1UL << 0)                               /**< HFRCO Enable Status */
+#define _CMU_STATUS_HFRCOENS_SHIFT                  0                                          /**< Shift value for CMU_HFRCOENS */
+#define _CMU_STATUS_HFRCOENS_MASK                   0x1UL                                      /**< Bit mask for CMU_HFRCOENS */
+#define _CMU_STATUS_HFRCOENS_DEFAULT                0x00000001UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFRCOENS_DEFAULT                 (_CMU_STATUS_HFRCOENS_DEFAULT << 0)        /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFRCORDY                         (0x1UL << 1)                               /**< HFRCO Ready */
+#define _CMU_STATUS_HFRCORDY_SHIFT                  1                                          /**< Shift value for CMU_HFRCORDY */
+#define _CMU_STATUS_HFRCORDY_MASK                   0x2UL                                      /**< Bit mask for CMU_HFRCORDY */
+#define _CMU_STATUS_HFRCORDY_DEFAULT                0x00000001UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFRCORDY_DEFAULT                 (_CMU_STATUS_HFRCORDY_DEFAULT << 1)        /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFXOENS                          (0x1UL << 2)                               /**< HFXO Enable Status */
+#define _CMU_STATUS_HFXOENS_SHIFT                   2                                          /**< Shift value for CMU_HFXOENS */
+#define _CMU_STATUS_HFXOENS_MASK                    0x4UL                                      /**< Bit mask for CMU_HFXOENS */
+#define _CMU_STATUS_HFXOENS_DEFAULT                 0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFXOENS_DEFAULT                  (_CMU_STATUS_HFXOENS_DEFAULT << 2)         /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFXORDY                          (0x1UL << 3)                               /**< HFXO Ready */
+#define _CMU_STATUS_HFXORDY_SHIFT                   3                                          /**< Shift value for CMU_HFXORDY */
+#define _CMU_STATUS_HFXORDY_MASK                    0x8UL                                      /**< Bit mask for CMU_HFXORDY */
+#define _CMU_STATUS_HFXORDY_DEFAULT                 0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFXORDY_DEFAULT                  (_CMU_STATUS_HFXORDY_DEFAULT << 3)         /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_AUXHFRCOENS                      (0x1UL << 4)                               /**< AUXHFRCO Enable Status */
+#define _CMU_STATUS_AUXHFRCOENS_SHIFT               4                                          /**< Shift value for CMU_AUXHFRCOENS */
+#define _CMU_STATUS_AUXHFRCOENS_MASK                0x10UL                                     /**< Bit mask for CMU_AUXHFRCOENS */
+#define _CMU_STATUS_AUXHFRCOENS_DEFAULT             0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_AUXHFRCOENS_DEFAULT              (_CMU_STATUS_AUXHFRCOENS_DEFAULT << 4)     /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_AUXHFRCORDY                      (0x1UL << 5)                               /**< AUXHFRCO Ready */
+#define _CMU_STATUS_AUXHFRCORDY_SHIFT               5                                          /**< Shift value for CMU_AUXHFRCORDY */
+#define _CMU_STATUS_AUXHFRCORDY_MASK                0x20UL                                     /**< Bit mask for CMU_AUXHFRCORDY */
+#define _CMU_STATUS_AUXHFRCORDY_DEFAULT             0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_AUXHFRCORDY_DEFAULT              (_CMU_STATUS_AUXHFRCORDY_DEFAULT << 5)     /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFRCOENS                         (0x1UL << 6)                               /**< LFRCO Enable Status */
+#define _CMU_STATUS_LFRCOENS_SHIFT                  6                                          /**< Shift value for CMU_LFRCOENS */
+#define _CMU_STATUS_LFRCOENS_MASK                   0x40UL                                     /**< Bit mask for CMU_LFRCOENS */
+#define _CMU_STATUS_LFRCOENS_DEFAULT                0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFRCOENS_DEFAULT                 (_CMU_STATUS_LFRCOENS_DEFAULT << 6)        /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFRCORDY                         (0x1UL << 7)                               /**< LFRCO Ready */
+#define _CMU_STATUS_LFRCORDY_SHIFT                  7                                          /**< Shift value for CMU_LFRCORDY */
+#define _CMU_STATUS_LFRCORDY_MASK                   0x80UL                                     /**< Bit mask for CMU_LFRCORDY */
+#define _CMU_STATUS_LFRCORDY_DEFAULT                0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFRCORDY_DEFAULT                 (_CMU_STATUS_LFRCORDY_DEFAULT << 7)        /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFXOENS                          (0x1UL << 8)                               /**< LFXO Enable Status */
+#define _CMU_STATUS_LFXOENS_SHIFT                   8                                          /**< Shift value for CMU_LFXOENS */
+#define _CMU_STATUS_LFXOENS_MASK                    0x100UL                                    /**< Bit mask for CMU_LFXOENS */
+#define _CMU_STATUS_LFXOENS_DEFAULT                 0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFXOENS_DEFAULT                  (_CMU_STATUS_LFXOENS_DEFAULT << 8)         /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFXORDY                          (0x1UL << 9)                               /**< LFXO Ready */
+#define _CMU_STATUS_LFXORDY_SHIFT                   9                                          /**< Shift value for CMU_LFXORDY */
+#define _CMU_STATUS_LFXORDY_MASK                    0x200UL                                    /**< Bit mask for CMU_LFXORDY */
+#define _CMU_STATUS_LFXORDY_DEFAULT                 0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFXORDY_DEFAULT                  (_CMU_STATUS_LFXORDY_DEFAULT << 9)         /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFRCOSEL                         (0x1UL << 10)                              /**< HFRCO Selected */
+#define _CMU_STATUS_HFRCOSEL_SHIFT                  10                                         /**< Shift value for CMU_HFRCOSEL */
+#define _CMU_STATUS_HFRCOSEL_MASK                   0x400UL                                    /**< Bit mask for CMU_HFRCOSEL */
+#define _CMU_STATUS_HFRCOSEL_DEFAULT                0x00000001UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFRCOSEL_DEFAULT                 (_CMU_STATUS_HFRCOSEL_DEFAULT << 10)       /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFXOSEL                          (0x1UL << 11)                              /**< HFXO Selected */
+#define _CMU_STATUS_HFXOSEL_SHIFT                   11                                         /**< Shift value for CMU_HFXOSEL */
+#define _CMU_STATUS_HFXOSEL_MASK                    0x800UL                                    /**< Bit mask for CMU_HFXOSEL */
+#define _CMU_STATUS_HFXOSEL_DEFAULT                 0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_HFXOSEL_DEFAULT                  (_CMU_STATUS_HFXOSEL_DEFAULT << 11)        /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFRCOSEL                         (0x1UL << 12)                              /**< LFRCO Selected */
+#define _CMU_STATUS_LFRCOSEL_SHIFT                  12                                         /**< Shift value for CMU_LFRCOSEL */
+#define _CMU_STATUS_LFRCOSEL_MASK                   0x1000UL                                   /**< Bit mask for CMU_LFRCOSEL */
+#define _CMU_STATUS_LFRCOSEL_DEFAULT                0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFRCOSEL_DEFAULT                 (_CMU_STATUS_LFRCOSEL_DEFAULT << 12)       /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFXOSEL                          (0x1UL << 13)                              /**< LFXO Selected */
+#define _CMU_STATUS_LFXOSEL_SHIFT                   13                                         /**< Shift value for CMU_LFXOSEL */
+#define _CMU_STATUS_LFXOSEL_MASK                    0x2000UL                                   /**< Bit mask for CMU_LFXOSEL */
+#define _CMU_STATUS_LFXOSEL_DEFAULT                 0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_LFXOSEL_DEFAULT                  (_CMU_STATUS_LFXOSEL_DEFAULT << 13)        /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_CALBSY                           (0x1UL << 14)                              /**< Calibration Busy */
+#define _CMU_STATUS_CALBSY_SHIFT                    14                                         /**< Shift value for CMU_CALBSY */
+#define _CMU_STATUS_CALBSY_MASK                     0x4000UL                                   /**< Bit mask for CMU_CALBSY */
+#define _CMU_STATUS_CALBSY_DEFAULT                  0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_CALBSY_DEFAULT                   (_CMU_STATUS_CALBSY_DEFAULT << 14)         /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCLFXOSEL                      (0x1UL << 16)                              /**< USBC LFXO Selected */
+#define _CMU_STATUS_USBCLFXOSEL_SHIFT               16                                         /**< Shift value for CMU_USBCLFXOSEL */
+#define _CMU_STATUS_USBCLFXOSEL_MASK                0x10000UL                                  /**< Bit mask for CMU_USBCLFXOSEL */
+#define _CMU_STATUS_USBCLFXOSEL_DEFAULT             0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCLFXOSEL_DEFAULT              (_CMU_STATUS_USBCLFXOSEL_DEFAULT << 16)    /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCLFRCOSEL                     (0x1UL << 17)                              /**< USBC LFRCO Selected */
+#define _CMU_STATUS_USBCLFRCOSEL_SHIFT              17                                         /**< Shift value for CMU_USBCLFRCOSEL */
+#define _CMU_STATUS_USBCLFRCOSEL_MASK               0x20000UL                                  /**< Bit mask for CMU_USBCLFRCOSEL */
+#define _CMU_STATUS_USBCLFRCOSEL_DEFAULT            0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCLFRCOSEL_DEFAULT             (_CMU_STATUS_USBCLFRCOSEL_DEFAULT << 17)   /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCUSHFRCOSEL                   (0x1UL << 18)                              /**< USBC USHFRCO Selected */
+#define _CMU_STATUS_USBCUSHFRCOSEL_SHIFT            18                                         /**< Shift value for CMU_USBCUSHFRCOSEL */
+#define _CMU_STATUS_USBCUSHFRCOSEL_MASK             0x40000UL                                  /**< Bit mask for CMU_USBCUSHFRCOSEL */
+#define _CMU_STATUS_USBCUSHFRCOSEL_DEFAULT          0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCUSHFRCOSEL_DEFAULT           (_CMU_STATUS_USBCUSHFRCOSEL_DEFAULT << 18) /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCHFCLKSYNC                    (0x1UL << 20)                              /**< USBC is synchronous to HFCLK */
+#define _CMU_STATUS_USBCHFCLKSYNC_SHIFT             20                                         /**< Shift value for CMU_USBCHFCLKSYNC */
+#define _CMU_STATUS_USBCHFCLKSYNC_MASK              0x100000UL                                 /**< Bit mask for CMU_USBCHFCLKSYNC */
+#define _CMU_STATUS_USBCHFCLKSYNC_DEFAULT           0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USBCHFCLKSYNC_DEFAULT            (_CMU_STATUS_USBCHFCLKSYNC_DEFAULT << 20)  /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCOENS                       (0x1UL << 21)                              /**< USHFRCO Enable Status */
+#define _CMU_STATUS_USHFRCOENS_SHIFT                21                                         /**< Shift value for CMU_USHFRCOENS */
+#define _CMU_STATUS_USHFRCOENS_MASK                 0x200000UL                                 /**< Bit mask for CMU_USHFRCOENS */
+#define _CMU_STATUS_USHFRCOENS_DEFAULT              0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCOENS_DEFAULT               (_CMU_STATUS_USHFRCOENS_DEFAULT << 21)     /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCORDY                       (0x1UL << 22)                              /**< USHFRCO Ready */
+#define _CMU_STATUS_USHFRCORDY_SHIFT                22                                         /**< Shift value for CMU_USHFRCORDY */
+#define _CMU_STATUS_USHFRCORDY_MASK                 0x400000UL                                 /**< Bit mask for CMU_USHFRCORDY */
+#define _CMU_STATUS_USHFRCORDY_DEFAULT              0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCORDY_DEFAULT               (_CMU_STATUS_USHFRCORDY_DEFAULT << 22)     /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCOSUSPEND                   (0x1UL << 23)                              /**< USHFRCO is suspended */
+#define _CMU_STATUS_USHFRCOSUSPEND_SHIFT            23                                         /**< Shift value for CMU_USHFRCOSUSPEND */
+#define _CMU_STATUS_USHFRCOSUSPEND_MASK             0x800000UL                                 /**< Bit mask for CMU_USHFRCOSUSPEND */
+#define _CMU_STATUS_USHFRCOSUSPEND_DEFAULT          0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCOSUSPEND_DEFAULT           (_CMU_STATUS_USHFRCOSUSPEND_DEFAULT << 23) /**< Shifted mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCODIV2SEL                   (0x1UL << 26)                              /**< USHFRCODIV2 Selected */
+#define _CMU_STATUS_USHFRCODIV2SEL_SHIFT            26                                         /**< Shift value for CMU_USHFRCODIV2SEL */
+#define _CMU_STATUS_USHFRCODIV2SEL_MASK             0x4000000UL                                /**< Bit mask for CMU_USHFRCODIV2SEL */
+#define _CMU_STATUS_USHFRCODIV2SEL_DEFAULT          0x00000000UL                               /**< Mode DEFAULT for CMU_STATUS */
+#define CMU_STATUS_USHFRCODIV2SEL_DEFAULT           (_CMU_STATUS_USHFRCODIV2SEL_DEFAULT << 26) /**< Shifted mode DEFAULT for CMU_STATUS */
 
 /* Bit fields for CMU USBCRCTRL */
 #define _CMU_USBCRCTRL_RESETVALUE                   0x00000000UL                         /**< Default value for CMU_USBCRCTRL */
@@ -1300,7 +1461,7 @@ typedef struct
 #define _USB_ROUTE_DMPUPEN_SHIFT                   2                                 /**< Shift value for USB_DMPUPEN */
 #define _USB_ROUTE_DMPUPEN_MASK                    0x4UL                             /**< Bit mask for USB_DMPUPEN */
 #define _USB_ROUTE_DMPUPEN_DEFAULT                 0x00000000UL                      /**< Mode DEFAULT for USB_ROUTE */
-#define USB_ROUTE_DMPUPEN_DEFAULT                  (_USB_ROUTE_DMPUPEN_DEFAULT << 2) /**< Shifted mode DEFAULT for USB_ROUTE */
+#define USB_ROUTE_DMPUPEN_DEFAULT (_USB_ROUTE_DMPUPEN_DEFAULT << 2) /**< Shifted mode DEFAULT for USB_ROUTE */
 
 /* Bit fields for USB GAHBCFG */
 #define _USB_GAHBCFG_RESETVALUE                    0x00000000UL                                /**< Default value for USB_GAHBCFG */
@@ -3910,10 +4071,110 @@ typedef struct
 #define GPIO_EM4WUCAUSE_EM4WUCAUSE_E13                    (_GPIO_EM4WUCAUSE_EM4WUCAUSE_E13 << 0)     /**< Shifted mode E13 for GPIO_EM4WUCAUSE */
 #define GPIO_EM4WUCAUSE_EM4WUCAUSE_C4                     (_GPIO_EM4WUCAUSE_EM4WUCAUSE_C4 << 0)      /**< Shifted mode C4 for GPIO_EM4WUCAUSE */
 
+/**************************************************************************//**
+ * @defgroup EFM32HG_DEVINFO_BitFields
+ * @{
+ *****************************************************************************/
+/* Bit fields for EFM32HG_DEVINFO */
+#define _DEVINFO_CAL_CRC_MASK                           0x0000FFFFUL /**< Integrity CRC checksum mask */
+#define _DEVINFO_CAL_CRC_SHIFT                          0            /**< Integrity CRC checksum shift */
+#define _DEVINFO_CAL_TEMP_MASK                          0x00FF0000UL /**< Calibration temperature, DegC, mask */
+#define _DEVINFO_CAL_TEMP_SHIFT                         16           /**< Calibration temperature shift */
+#define _DEVINFO_ADC0CAL0_1V25_GAIN_MASK                0x00007F00UL /**< Gain for 1V25 reference, mask */
+#define _DEVINFO_ADC0CAL0_1V25_GAIN_SHIFT               8            /**< Gain for 1V25 reference, shift */
+#define _DEVINFO_ADC0CAL0_1V25_OFFSET_MASK              0x0000007FUL /**< Offset for 1V25 reference, mask */
+#define _DEVINFO_ADC0CAL0_1V25_OFFSET_SHIFT             0            /**< Offset for 1V25 reference, shift */
+#define _DEVINFO_ADC0CAL0_2V5_GAIN_MASK                 0x7F000000UL /**< Gain for 2V5 reference, mask */
+#define _DEVINFO_ADC0CAL0_2V5_GAIN_SHIFT                24           /**< Gain for 2V5 reference, shift */
+#define _DEVINFO_ADC0CAL0_2V5_OFFSET_MASK               0x007F0000UL /**< Offset for 2V5 reference, mask */
+#define _DEVINFO_ADC0CAL0_2V5_OFFSET_SHIFT              16           /**< Offset for 2V5 reference, shift */
+#define _DEVINFO_ADC0CAL1_VDD_GAIN_MASK                 0x00007F00UL /**< Gain for VDD reference, mask */
+#define _DEVINFO_ADC0CAL1_VDD_GAIN_SHIFT                8            /**< Gain for VDD reference, shift */
+#define _DEVINFO_ADC0CAL1_VDD_OFFSET_MASK               0x0000007FUL /**< Offset for VDD reference, mask */
+#define _DEVINFO_ADC0CAL1_VDD_OFFSET_SHIFT              0            /**< Offset for VDD reference, shift */
+#define _DEVINFO_ADC0CAL1_5VDIFF_GAIN_MASK              0x7F000000UL /**< Gain 5VDIFF for 5VDIFF reference, mask */
+#define _DEVINFO_ADC0CAL1_5VDIFF_GAIN_SHIFT             24           /**< Gain for 5VDIFF reference, mask */
+#define _DEVINFO_ADC0CAL1_5VDIFF_OFFSET_MASK            0x007F0000UL /**< Offset for 5VDIFF reference, mask */
+#define _DEVINFO_ADC0CAL1_5VDIFF_OFFSET_SHIFT           16           /**< Offset for 5VDIFF reference, shift */
+#define _DEVINFO_ADC0CAL2_2XVDDVSS_OFFSET_MASK          0x0000007FUL /**< Offset for 2XVDDVSS reference, mask */
+#define _DEVINFO_ADC0CAL2_2XVDDVSS_OFFSET_SHIFT         0            /**< Offset for 2XVDDVSS reference, shift */
+#define _DEVINFO_ADC0CAL2_TEMP1V25_MASK                 0xFFF00000UL /**< Temperature reading at 1V25 reference, mask */
+#define _DEVINFO_ADC0CAL2_TEMP1V25_SHIFT                20           /**< Temperature reading at 1V25 reference, DegC */
+#define _DEVINFO_IDAC0CAL0_RANGE0_MASK                  0x000000FFUL /**< Current range 0 tuning value for IDAC0 mask */
+#define _DEVINFO_IDAC0CAL0_RANGE0_SHIFT                 0            /**< Current range 0 tuning value for IDAC0 shift */
+#define _DEVINFO_IDAC0CAL0_RANGE1_MASK                  0x0000FF00UL /**< Current range 1 tuning value for IDAC0 mask */
+#define _DEVINFO_IDAC0CAL0_RANGE1_SHIFT                 8            /**< Current range 1 tuning value for IDAC0 shift */
+#define _DEVINFO_IDAC0CAL0_RANGE2_MASK                  0x00FF0000UL /**< Current range 2 tuning value for IDAC0 mask */
+#define _DEVINFO_IDAC0CAL0_RANGE2_SHIFT                 16           /**< Current range 2 tuning value for IDAC0 shift */
+#define _DEVINFO_IDAC0CAL0_RANGE3_MASK                  0xFF000000UL /**< Current range 3 tuning value for IDAC0 mask */
+#define _DEVINFO_IDAC0CAL0_RANGE3_SHIFT                 24           /**< Current range 3 tuning value for IDAC0 shift */
+#define _DEVINFO_USHFRCOCAL0_BAND24_TUNING_MASK         0x0000007FUL /**< 24 MHz TUNING value for USFRCO mask */
+#define _DEVINFO_USHFRCOCAL0_BAND24_TUNING_SHIFT        0            /**< 24 MHz TUNING value for USFRCO shift */
+#define _DEVINFO_USHFRCOCAL0_BAND24_FINETUNING_MASK     0x00003F00UL /**< 24 MHz FINETUNING value for USFRCO mask */
+#define _DEVINFO_USHFRCOCAL0_BAND24_FINETUNING_SHIFT    8            /**< 24 MHz FINETUNING value for USFRCO shift */
+#define _DEVINFO_USHFRCOCAL0_BAND48_TUNING_MASK         0x007F0000UL /**< 24 MHz TUNING value for USFRCO mask */
+#define _DEVINFO_USHFRCOCAL0_BAND48_TUNING_SHIFT        16           /**< 24 MHz TUNING value for USFRCO shift */
+#define _DEVINFO_USHFRCOCAL0_BAND48_FINETUNING_MASK     0x3F000000UL /**< 24 MHz FINETUNING value for USFRCO mask */
+#define _DEVINFO_USHFRCOCAL0_BAND48_FINETUNING_SHIFT    24           /**< 24 MHz FINETUNING value for USFRCO shift */
+#define _DEVINFO_AUXHFRCOCAL0_BAND1_MASK                0x000000FFUL /**< 1MHz tuning value for AUXHFRCO, mask */
+#define _DEVINFO_AUXHFRCOCAL0_BAND1_SHIFT               0            /**< 1MHz tuning value for AUXHFRCO, shift */
+#define _DEVINFO_AUXHFRCOCAL0_BAND7_MASK                0x0000FF00UL /**< 7MHz tuning value for AUXHFRCO, mask */
+#define _DEVINFO_AUXHFRCOCAL0_BAND7_SHIFT               8            /**< 7MHz tuning value for AUXHFRCO, shift */
+#define _DEVINFO_AUXHFRCOCAL0_BAND11_MASK               0x00FF0000UL /**< 11MHz tuning value for AUXHFRCO, mask */
+#define _DEVINFO_AUXHFRCOCAL0_BAND11_SHIFT              16           /**< 11MHz tuning value for AUXHFRCO, shift */
+#define _DEVINFO_AUXHFRCOCAL0_BAND14_MASK               0xFF000000UL /**< 14MHz tuning value for AUXHFRCO, mask */
+#define _DEVINFO_AUXHFRCOCAL0_BAND14_SHIFT              24           /**< 14MHz tuning value for AUXHFRCO, shift */
+#define _DEVINFO_AUXHFRCOCAL1_BAND21_MASK               0x000000FFUL /**< 21MHz tuning value for AUXHFRCO, mask */
+#define _DEVINFO_AUXHFRCOCAL1_BAND21_SHIFT              0            /**< 21MHz tuning value for AUXHFRCO, shift */
+#define _DEVINFO_HFRCOCAL0_BAND1_MASK                   0x000000FFUL /**< 1MHz tuning value for HFRCO, mask */
+#define _DEVINFO_HFRCOCAL0_BAND1_SHIFT                  0            /**< 1MHz tuning value for HFRCO, shift */
+#define _DEVINFO_HFRCOCAL0_BAND7_MASK                   0x0000FF00UL /**< 7MHz tuning value for HFRCO, mask */
+#define _DEVINFO_HFRCOCAL0_BAND7_SHIFT                  8            /**< 7MHz tuning value for HFRCO, shift */
+#define _DEVINFO_HFRCOCAL0_BAND11_MASK                  0x00FF0000UL /**< 11MHz tuning value for HFRCO, mask */
+#define _DEVINFO_HFRCOCAL0_BAND11_SHIFT                 16           /**< 11MHz tuning value for HFRCO, shift */
+#define _DEVINFO_HFRCOCAL0_BAND14_MASK                  0xFF000000UL /**< 14MHz tuning value for HFRCO, mask */
+#define _DEVINFO_HFRCOCAL0_BAND14_SHIFT                 24           /**< 14MHz tuning value for HFRCO, shift */
+#define _DEVINFO_HFRCOCAL1_BAND21_MASK                  0x000000FFUL /**< 21MHz tuning value for HFRCO, mask */
+#define _DEVINFO_HFRCOCAL1_BAND21_SHIFT                 0            /**< 21MHz tuning value for HFRCO, shift */
+#define _DEVINFO_MEMINFO_FLASH_PAGE_SIZE_MASK           0xFF000000UL /**< Flash page size (refer to ref.man for encoding) mask */
+#define _DEVINFO_MEMINFO_FLASH_PAGE_SIZE_SHIFT          24           /**< Flash page size shift */
+#define _DEVINFO_UNIQUEL_MASK                           0xFFFFFFFFUL /**< Lower part of  64-bit device unique number */
+#define _DEVINFO_UNIQUEL_SHIFT                          0            /**< Unique Low 32-bit shift */
+#define _DEVINFO_UNIQUEH_MASK                           0xFFFFFFFFUL /**< High part of  64-bit device unique number */
+#define _DEVINFO_UNIQUEH_SHIFT                          0            /**< Unique High 32-bit shift */
+#define _DEVINFO_MSIZE_SRAM_MASK                        0xFFFF0000UL /**< Flash size in kilobytes */
+#define _DEVINFO_MSIZE_SRAM_SHIFT                       16           /**< Bit position for flash size */
+#define _DEVINFO_MSIZE_FLASH_MASK                       0x0000FFFFUL /**< SRAM size in kilobytes */
+#define _DEVINFO_MSIZE_FLASH_SHIFT                      0            /**< Bit position for SRAM size */
+#define _DEVINFO_PART_PROD_REV_MASK                     0xFF000000UL /**< Production revision */
+#define _DEVINFO_PART_PROD_REV_SHIFT                    24           /**< Bit position for production revision */
+#define _DEVINFO_PART_DEVICE_FAMILY_MASK                0x00FF0000UL /**< Device Family, 0x47 for Gecko */
+#define _DEVINFO_PART_DEVICE_FAMILY_SHIFT               16           /**< Bit position for device family */
+/* Legacy family #defines */
+#define _DEVINFO_PART_DEVICE_FAMILY_G                   71           /**< Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_GG                  72           /**< Giant Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_TG                  73           /**< Tiny Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_LG                  74           /**< Leopard Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_WG                  75           /**< Wonder Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_ZG                  76           /**< Zero Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_HG                  77           /**< Happy Gecko Device Family */
+/* New style family #defines */
+#define _DEVINFO_PART_DEVICE_FAMILY_EFM32G              71           /**< Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EFM32GG             72           /**< Giant Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EFM32TG             73           /**< Tiny Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EFM32LG             74           /**< Leopard Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EFM32WG             75           /**< Wonder Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EFM32ZG             76           /**< Zero Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EFM32HG             77           /**< Happy Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EZR32WG             120          /**< EZR Wonder Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EZR32LG             121          /**< EZR Leopard Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_FAMILY_EZR32HG             122          /**< EZR Happy Gecko Device Family */
+#define _DEVINFO_PART_DEVICE_NUMBER_MASK                0x0000FFFFUL /**< Device number */
+#define _DEVINFO_PART_DEVICE_NUMBER_SHIFT               0            /**< Bit position for device number */
+
 /** LFRCO frequency, tuned to below frequency during manufacturing. */
 #define EFM32_LFRCO_FREQ  (32768UL)
 #define EFM32_ULFRCO_FREQ (1000UL)
-
 #define DCTL_WO_BITMASK \
           (_USB_DCTL_CGOUTNAK_MASK  | _USB_DCTL_SGOUTNAK_MASK | \
            _USB_DCTL_CGNPINNAK_MASK | _USB_DCTL_SGNPINNAK_MASK)
@@ -3967,6 +4228,34 @@ static inline void watchdog_refresh(void)
                | (8 << _WDOG_CTRL_PERSEL_SHIFT)
                | WDOG_CTRL_EN;
 }
+
+struct efm32hg_rev
+{
+    uint8_t family;
+    uint8_t minor;
+    uint8_t major;
+};
+
+static inline void efm32hg_revno(struct efm32hg_rev *rev)
+{
+    uint8_t tmp;
+
+    /* CHIP FAMILY bit [5:2] */
+    tmp = ((ROMTABLE->PID1 & 0xf) << 2);
+    /* CHIP FAMILY bit [1:0] */
+    tmp |= ((ROMTABLE->PID0 & 0xc0) >> 6);
+    rev->family = tmp;
+
+    /* CHIP MAJOR bit [3:0] */
+    rev->major = (ROMTABLE->PID0 & 0x3f);
+
+    /* CHIP MINOR bit [7:4] */
+    tmp = (((ROMTABLE->PID2 & 0xf0) >> 4) << 4);
+    /* CHIP MINOR bit [3:0] */
+    tmp |= ((ROMTABLE->PID3 & 0xf0) >> 4);
+    rev->minor = tmp;
+}
+
 
 #define CORTEX_NUM_VECTORS 24
 
