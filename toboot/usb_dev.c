@@ -609,7 +609,7 @@ handle_out0(struct usb_dev *dev)
     return 0 /*USB_EVENT_OK*/;
 }
 
-static int usb_setup(struct usb_dev *dev)
+static void usb_setup(struct usb_dev *dev)
 {
     const uint8_t *data = NULL;
     uint32_t datalen = 0;
@@ -633,6 +633,37 @@ static int usb_setup(struct usb_dev *dev)
         reply_buffer[1] = 0;
         datalen = 2;
         data = reply_buffer;
+        break;
+    case 0x0082: // GET_STATUS (endpoint)
+        if (dev->dev_req.wIndex > 0) {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        reply_buffer[0] = 0;
+        reply_buffer[1] = 0;
+
+        if (USB->DIEP0CTL & USB_DIEP_CTL_STALL)
+            reply_buffer[0] = 1;
+        data = reply_buffer;
+        datalen = 2;
+        break;
+    case 0x0102: // CLEAR_FEATURE (endpoint)
+        if (dev->dev_req.wIndex > 0 || dev->dev_req.wValue != 0) {
+            // TODO: do we need to handle IN vs OUT here?
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        USB->DIEP0CTL &= ~USB_DIEP_CTL_STALL;
+        // TODO: do we need to clear the data toggle here?
+        break;
+    case 0x0302: // SET_FEATURE (endpoint)
+        if (dev->dev_req.wIndex > 0 || dev->dev_req.wValue != 0) {
+            // TODO: do we need to handle IN vs OUT here?
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        USB->DIEP0CTL |= USB_DIEP_CTL_STALL;
+        // TODO: do we need to clear the data toggle here?
         break;
     case 0x0680: // GET_DESCRIPTOR
     case 0x0681:
@@ -658,7 +689,7 @@ static int usb_setup(struct usb_dev *dev)
             }
         }
         usb_lld_ctrl_error(dev);
-        return 0;
+        return;
 
     case (MSFT_VENDOR_CODE << 8) | 0xC0: // Get Microsoft descriptor
     case (MSFT_VENDOR_CODE << 8) | 0xC1:
@@ -670,11 +701,11 @@ static int usb_setup(struct usb_dev *dev)
             break;
         }
         usb_lld_ctrl_error(dev);
-        return 0;
+        return;
 
     default:
         usb_lld_ctrl_error(dev);
-        return 0;
+        return;
     }
 
 send:
@@ -682,7 +713,7 @@ send:
         usb_lld_ctrl_send(dev, data, datalen);
     else
         usb_lld_ctrl_ack(dev);
-    return 0;
+    return;
 }
 
 static int
