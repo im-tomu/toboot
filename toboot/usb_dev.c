@@ -32,7 +32,6 @@
  * SOFTWARE.
  */
 
-#include <string.h>
 #include "mcu.h"
 #include "usb_dev.h"
 #include "usb_desc.h"
@@ -52,6 +51,8 @@
 #define ENDP7 ((uint8_t)7)
 
 volatile uint8_t usb_configuration = 0;
+
+void *memcpy(void *dst, const void *src, size_t cnt);
 
 enum RECIPIENT_TYPE
 {
@@ -635,7 +636,8 @@ static void usb_setup(struct usb_dev *dev)
         data = reply_buffer;
         break;
     case 0x0082: // GET_STATUS (endpoint)
-        if (dev->dev_req.wIndex > 0) {
+        if (dev->dev_req.wIndex > 0)
+        {
             usb_lld_ctrl_error(dev);
             return;
         }
@@ -648,7 +650,8 @@ static void usb_setup(struct usb_dev *dev)
         datalen = 2;
         break;
     case 0x0102: // CLEAR_FEATURE (endpoint)
-        if (dev->dev_req.wIndex > 0 || dev->dev_req.wValue != 0) {
+        if (dev->dev_req.wIndex > 0 || dev->dev_req.wValue != 0)
+        {
             // TODO: do we need to handle IN vs OUT here?
             usb_lld_ctrl_error(dev);
             return;
@@ -657,7 +660,8 @@ static void usb_setup(struct usb_dev *dev)
         // TODO: do we need to clear the data toggle here?
         break;
     case 0x0302: // SET_FEATURE (endpoint)
-        if (dev->dev_req.wIndex > 0 || dev->dev_req.wValue != 0) {
+        if (dev->dev_req.wIndex > 0 || dev->dev_req.wValue != 0)
+        {
             // TODO: do we need to handle IN vs OUT here?
             usb_lld_ctrl_error(dev);
             return;
