@@ -4,6 +4,7 @@
 __attribute__((noreturn))
 void updater(void) {
     usb_init();
+    dfu_init();
     volatile uint32_t *douttgl = &GPIO->P[1].DOUTTGL;
 
     while (1) {

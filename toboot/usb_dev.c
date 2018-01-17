@@ -80,6 +80,7 @@ enum DESCRIPTOR_TYPE
 
 static struct device_req ep0_setup_pkt[3] __attribute__((aligned(4)));
 static char ctrl_send_buf[USB_MAX_PACKET_SIZE] __attribute__((aligned(4)));
+static uint8_t rx_buffer[64];
 
 /* The state machine states of a control pipe */
 enum CONTROL_STATE
@@ -94,6 +95,7 @@ enum CONTROL_STATE
 };
 
 static struct usb_dev default_dev;
+static struct device_req last_setup;
 struct usb_dev *dev = &default_dev;
 static uint8_t reply_buffer[8];
 
@@ -272,8 +274,11 @@ efm32hg_ep_out_is_disabled(uint8_t n)
 }
 */
 
-static void
-handle_datastage_out(struct usb_dev *dev)
+uint32_t lens[32] = {9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9};
+uint32_t pktsizes[32] =  {9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9};
+uint8_t len_pos = 0;
+
+static void handle_datastage_out(struct usb_dev *dev)
 {
     struct ctrl_data *data_p = &dev->ctrl_data;
     uint32_t len = USB->DOEP0TSIZ & 0x7FUL; /* XFERSIZE */
@@ -283,9 +288,14 @@ handle_datastage_out(struct usb_dev *dev)
     data_p->addr += len;
 
     len = data_p->len < pktsize ? data_p->len : pktsize;
+    pktsizes[len_pos] = pktsize;
+    lens[len_pos++] = len;
+    if (len_pos > 32)
+        len_pos = 0;
 
     if (data_p->len == 0)
     {
+        asm("bkpt #93");
         /* No more data to receive, proceed to send acknowledge for IN.  */
         efm32hg_prepare_ep0_setup(dev);
         dev->state = WAIT_STATUS_IN;
@@ -333,6 +343,20 @@ handle_datastage_in(struct usb_dev *dev)
     efm32hg_prepare_ep0_in(data_p->addr, len, 0);
     data_p->len -= len;
     data_p->addr += len;
+}
+
+int usb_lld_ctrl_recv(struct usb_dev *dev, void *p, size_t len)
+{
+    struct ctrl_data *data_p = &dev->ctrl_data;
+    uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
+    data_p->addr = (uint8_t *)p;
+    data_p->len = len;
+    if (len > pktsize)
+        len = pktsize;
+
+    efm32hg_prepare_ep0_out(p, len, 0);
+    dev->state = OUT_DATA;
+    return 0;
 }
 
 int usb_lld_ctrl_ack(struct usb_dev *dev)
@@ -400,15 +424,50 @@ void usb_lld_ctrl_error(struct usb_dev *dev)
     efm32hg_prepare_ep0_setup(dev);
 }
 
-static int
-handle_out0(struct usb_dev *dev)
+static uint32_t ep0_rx_offset;
+static void handle_out0(struct usb_dev *dev)
 {
-    if (dev->state == OUT_DATA)
+    if (dev->state == OUT_DATA) {
         /* It's normal control WRITE transfer.  */
         handle_datastage_out(dev);
+
+        // The only control OUT request we have now, DFU_DNLOAD
+        if (last_setup.wRequestAndType == 0x0121)
+        {
+            if (last_setup.wIndex != 0 && ep0_rx_offset > last_setup.wLength)
+            {
+                usb_lld_ctrl_error(dev);
+            }
+            else
+            {
+                uint32_t size = last_setup.wLength - ep0_rx_offset;
+                if (size > EP0_SIZE)
+                    size = EP0_SIZE;
+
+                if (dfu_download(last_setup.wValue,  // blockNum
+                                 last_setup.wLength, // blockLength
+                                 ep0_rx_offset,      // packetOffset
+                                 size,               // packetLength
+                                 dev->ctrl_data.addr))
+                {
+                    ep0_rx_offset += size;
+                    if (ep0_rx_offset >= last_setup.wLength)
+                    {
+                        // End of transaction, acknowledge with a zero-length IN
+                        usb_lld_ctrl_ack(dev);
+                    }
+                }
+                else
+                {
+                    usb_lld_ctrl_error(dev);
+                }
+            }
+        }
+    }
     else if (dev->state == WAIT_STATUS_OUT)
     { /* Control READ transfer done successfully.  */
         efm32hg_prepare_ep0_setup(dev);
+        ep0_rx_offset = 0;
         dev->state = WAIT_SETUP;
     }
     else
@@ -425,7 +484,6 @@ handle_out0(struct usb_dev *dev)
         dev->state = WAIT_SETUP;
         efm32hg_prepare_ep0_setup(dev);
     }
-    return 0 /*USB_EVENT_OK*/;
 }
 
 static void usb_setup(struct usb_dev *dev)
@@ -433,6 +491,7 @@ static void usb_setup(struct usb_dev *dev)
     const uint8_t *data = NULL;
     uint32_t datalen = 0;
     const usb_descriptor_list_t *list;
+    last_setup = dev->dev_req;
 
     switch (dev->dev_req.wRequestAndType)
     {
@@ -524,6 +583,84 @@ static void usb_setup(struct usb_dev *dev)
         }
         usb_lld_ctrl_error(dev);
         return;
+    case 0x0121: // DFU_DNLOAD
+        if (dev->dev_req.wIndex > 0)
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        // Data comes in the OUT phase. But if it's a zero-length request, handle it now.
+        if (dev->dev_req.wLength == 0)
+        {
+            if (!dfu_download(dev->dev_req.wValue, 0, 0, 0, NULL))
+            {
+                usb_lld_ctrl_error(dev);
+                return;
+            }
+        }
+        usb_lld_ctrl_recv(dev, rx_buffer, dev->dev_req.wLength);
+        return;
+
+    case 0x03a1: // DFU_GETSTATUS
+        if (dev->dev_req.wIndex > 0)
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        if (dfu_getstatus(reply_buffer))
+        {
+            data = reply_buffer;
+            datalen = 6;
+            break;
+        }
+        else
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        break;
+    case 0x0421: // DFU_CLRSTATUS
+        if (dev->dev_req.wIndex > 0)
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        if (dfu_clrstatus())
+        {
+            break;
+        }
+        else
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+
+    case 0x05a1: // DFU_GETSTATE
+        if (dev->dev_req.wIndex > 0)
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        reply_buffer[0] = dfu_getstate();
+        data = reply_buffer;
+        datalen = 1;
+        break;
+
+    case 0x0621: // DFU_ABORT
+        if (dev->dev_req.wIndex > 0)
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
+        if (dfu_abort())
+        {
+            break;
+        }
+        else
+        {
+            usb_lld_ctrl_error(dev);
+            return;
+        }
 
     default:
         usb_lld_ctrl_error(dev);
@@ -538,16 +675,16 @@ send:
     return;
 }
 
-static int
-handle_in0(struct usb_dev *dev)
+static void handle_in0(struct usb_dev *dev)
 {
     if (dev->state == IN_DATA || dev->state == LAST_IN_DATA)
+    {
         handle_datastage_in(dev);
+    }
     else if (dev->state == WAIT_STATUS_IN)
     { /* Control WRITE transfer done successfully.  */
         efm32hg_prepare_ep0_setup(dev);
         dev->state = WAIT_SETUP;
-        return 1; //USB_EVENT_CTRL_WRITE_FINISH;
     }
     else
     {
@@ -557,8 +694,6 @@ handle_in0(struct usb_dev *dev)
         dev->state = WAIT_SETUP;
         efm32hg_prepare_ep0_setup(dev);
     }
-
-    return 0; //USB_EVENT_OK;
 }
 
 void USB_Handler(void)
@@ -656,12 +791,6 @@ void USB_Handler(void)
                     else /* ep != 0 */
                     {
                         asm("bkpt #98");
-                        //uint32_t remain = USB_DOUTEPS[ep].TSIZ & 0x7FFFFUL; /* XFERSIZE */
-                        //if (remain < oeps[ep].xfersize)
-                        //    len = oeps[ep].xfersize - remain;
-                        //else
-                        //    len = 0;
-                        //return USB_MAKE_TXRX(ep, 0, len);
                         return;
                     }
                 }
@@ -684,8 +813,6 @@ void USB_Handler(void)
             epint >>= 1;
         }
     }
-
-    //return USB_MAKE_EV(r);
 }
 
 static int usb_core_init(void)
