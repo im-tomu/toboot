@@ -15,16 +15,14 @@ DBG_CFLAGS = -ggdb -g -DDEBUG -Wall
 DBG_LFLAGS = -ggdb -g -Wall
 CFLAGS     = $(ADD_CFLAGS) \
              -DVERSION=\"$(VERSION)\" -DPACKAGE=\"$(PACKAGE)\" \
-             -DPREFIX=\"$(PREFIX)\" -DDESTDIR=\"$(DESTDIR)\" -DARDUINO=160 \
-             -I. -I../../support -Iash -Iash/internals \
-             -fsingle-precision-constant -Wall -Wextra \
+             -DPREFIX=\"$(PREFIX)\" -DDESTDIR=\"$(DESTDIR)\" \
+             -Wall -Wextra \
              -mcpu=cortex-m0plus -mfloat-abi=soft -mthumb \
-             -DARDUINO_APP -fno-builtin \
              -ffunction-sections -fdata-sections -fno-common \
-             -fomit-frame-pointer -falign-functions=16 -nostdlib -Os
+             -fomit-frame-pointer -falign-functions=16 -Os
 CXXFLAGS   = $(CFLAGS) -std=c++11 -fno-rtti -fno-exceptions
 LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
-             -nostartfiles -nostdlib -nodefaultlibs \
+             -nostartfiles \
              -Wl,--gc-sections \
              -Wl,--no-warn-mismatch,--script=$(LDSCRIPT),--build-id=none
 
