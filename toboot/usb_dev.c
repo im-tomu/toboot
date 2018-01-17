@@ -32,6 +32,7 @@
  * SOFTWARE.
  */
 
+#include <string.h>
 #include "mcu.h"
 #include "usb_dev.h"
 #include "usb_desc.h"
@@ -49,6 +50,8 @@
 #define ENDP5 ((uint8_t)5)
 #define ENDP6 ((uint8_t)6)
 #define ENDP7 ((uint8_t)7)
+
+volatile uint8_t usb_configuration = 0;
 
 enum RECIPIENT_TYPE
 {
@@ -91,6 +94,7 @@ enum CONTROL_STATE
 
 static struct usb_dev default_dev;
 struct usb_dev *dev = &default_dev;
+static uint8_t reply_buffer[8];
 
 #if 0
 
@@ -437,40 +441,40 @@ efm32hg_ep_out_is_stall(uint8_t n)
 }
 
 static int
-efm32hg_ep_in_is_disabled (uint8_t n)
+efm32hg_ep_in_is_disabled(uint8_t n)
 {
-  return (USB_DINEPS[n].CTL & USB_DIEP_CTL_EPENA) ? 0 : 1;
+    return (USB_DINEPS[n].CTL & USB_DIEP_CTL_EPENA) ? 0 : 1;
 }
 
 static int
-efm32hg_ep_out_is_disabled (uint8_t n)
+efm32hg_ep_out_is_disabled(uint8_t n)
 {
-  return (USB_DOUTEPS[n].CTL & USB_DOEP_CTL_EPENA) ? 0 : 1;
+    return (USB_DOUTEPS[n].CTL & USB_DOEP_CTL_EPENA) ? 0 : 1;
 }
 
 static void
-handle_datastage_out (struct usb_dev *dev)
+handle_datastage_out(struct usb_dev *dev)
 {
-  struct ctrl_data *data_p = &dev->ctrl_data;
-  uint32_t len = USB->DOEP0TSIZ & 0x7FUL; /* XFERSIZE */
-  uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
+    struct ctrl_data *data_p = &dev->ctrl_data;
+    uint32_t len = USB->DOEP0TSIZ & 0x7FUL; /* XFERSIZE */
+    uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
 
-  data_p->len -= len;
-  data_p->addr += len;
+    data_p->len -= len;
+    data_p->addr += len;
 
-  len = data_p->len < pktsize ? data_p->len : pktsize;
+    len = data_p->len < pktsize ? data_p->len : pktsize;
 
-  if (data_p->len == 0)
+    if (data_p->len == 0)
     {
-      /* No more data to receive, proceed to send acknowledge for IN.  */
-      efm32hg_prepare_ep0_setup (dev);
-      dev->state = WAIT_STATUS_IN;
-      efm32hg_prepare_ep0_in (NULL, 0, 0);
+        /* No more data to receive, proceed to send acknowledge for IN.  */
+        efm32hg_prepare_ep0_setup(dev);
+        dev->state = WAIT_STATUS_IN;
+        efm32hg_prepare_ep0_in(NULL, 0, 0);
     }
-  else
+    else
     {
-      dev->state = OUT_DATA;
-      efm32hg_prepare_ep0_out (data_p->addr, len, 0);
+        dev->state = OUT_DATA;
+        efm32hg_prepare_ep0_out(data_p->addr, len, 0);
     }
 }
 
@@ -511,466 +515,160 @@ handle_datastage_in(struct usb_dev *dev)
     data_p->addr += len;
 }
 
+int usb_lld_ctrl_ack(struct usb_dev *dev)
+{
+    /* Zero length packet for ACK.  */
+    efm32hg_prepare_ep0_setup(dev);
+    dev->state = WAIT_STATUS_IN;
+    efm32hg_prepare_ep0_in(NULL, 0, 0);
+    return 0;
+}
+
 /*
  * BUF: Pointer to data memory.  Data memory should not be allocated
  *      on stack when BUFLEN > USB_MAX_PACKET_SIZE.
  *
  * BUFLEN: size of the data.
  */
-int
-usb_lld_ctrl_send (struct usb_dev *dev, const void *buf, size_t buflen)
+int usb_lld_ctrl_send(struct usb_dev *dev, const void *buf, size_t buflen)
 {
-  struct ctrl_data *data_p = &dev->ctrl_data;
-  uint32_t len_asked = dev->dev_req.len;
-  uint32_t len;
-  uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
+    struct ctrl_data *data_p = &dev->ctrl_data;
+    uint32_t len_asked = dev->dev_req.wLength;
+    uint32_t len;
+    uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
 
-  data_p->addr = (void *)buf;
-  data_p->len = buflen;
+    data_p->addr = (void *)buf;
+    data_p->len = buflen;
 
-  /* Restrict the data length to be the one host asks for */
-  if (data_p->len > len_asked)
-    data_p->len = len_asked;
+    /* Restrict the data length to be the one host asks for */
+    if (data_p->len > len_asked)
+        data_p->len = len_asked;
 
-  data_p->require_zlp = (data_p->len != 0 && (data_p->len % pktsize) == 0);
+    data_p->require_zlp = (data_p->len != 0 && (data_p->len % pktsize) == 0);
 
-  if (((uint32_t) data_p->addr & 3) && (data_p->len <= pktsize))
+    if (((uint32_t)data_p->addr & 3) && (data_p->len <= pktsize))
     {
-      data_p->addr = (void *) ctrl_send_buf;
-      memcpy (data_p->addr, buf, buflen);
+        data_p->addr = (void *)ctrl_send_buf;
+        memcpy(data_p->addr, buf, buflen);
     }
 
-  if (data_p->len < pktsize)
+    if (data_p->len < pktsize)
     {
-      len = data_p->len;
-      dev->state = LAST_IN_DATA;
+        len = data_p->len;
+        dev->state = LAST_IN_DATA;
     }
-  else
+    else
     {
-      len = pktsize;
-      dev->state = IN_DATA;
+        len = pktsize;
+        dev->state = IN_DATA;
     }
 
-  efm32hg_prepare_ep0_in (data_p->addr, len, 0);
+    efm32hg_prepare_ep0_in(data_p->addr, len, 0);
 
-  data_p->len -= len;
-  data_p->addr += len;
+    data_p->len -= len;
+    data_p->addr += len;
 
-  return 0/*USB_EVENT_OK*/;
+    return 0 /*USB_EVENT_OK*/;
 }
 
-void
-usb_lld_ctrl_error (struct usb_dev *dev)
+void usb_lld_ctrl_error(struct usb_dev *dev)
 {
-  dev->state = STALLED;
-  efm32hg_ep_out_stall (ENDP0);
-  efm32hg_ep_in_stall (ENDP0);
-  dev->state = WAIT_SETUP;
-  efm32hg_prepare_ep0_setup (dev);
-}
-
-/* --------------------------------------- */
-
-typedef int (*HANDLER)(struct usb_dev *dev);
-
-static int
-std_none(struct usb_dev *dev)
-{
-    (void)dev;
-    return -1;
-}
-
-static uint16_t status_info __attribute__((aligned(4)));
-
-static int
-std_get_status(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (arg->value != 0 || arg->len != 2 || (arg->index >> 8) != 0 || USB_SETUP_SET(arg->type))
-        return -1;
-
-    if (rcp == DEVICE_RECIPIENT)
-    {
-        if (arg->index == 0)
-        {
-            /* Get Device Status */
-            uint8_t feature = dev->feature;
-
-            /* Remote Wakeup enabled */
-            if ((feature & (1 << 5)))
-                status_info |= 2;
-            else
-                status_info &= ~2;
-
-            /* Bus-powered */
-            if ((feature & (1 << 6)))
-                status_info |= 1;
-            else /* Self-powered */
-                status_info &= ~1;
-
-            return usb_lld_ctrl_send(dev, &status_info, 2);
-        }
-    }
-    else if (rcp == INTERFACE_RECIPIENT)
-    {
-        if (dev->configuration == 0)
-            return -1;
-
-        return 0 /*USB_EVENT_GET_STATUS_INTERFACE*/;
-    }
-    else if (rcp == ENDPOINT_RECIPIENT)
-    {
-        uint8_t n = (arg->index & 0x0f);
-
-        if ((arg->index & 0x70) || n == ENDP0)
-            return -1;
-
-        if (arg->index & 0x80)
-        {
-            /* IN endpoint */
-
-            if (efm32hg_ep_in_is_disabled(n))
-                return -1;
-
-            status_info = efm32hg_ep_in_is_stall(n);
-        }
-        else
-        {
-            /* OUT endpoint */
-
-            if (efm32hg_ep_out_is_disabled(n))
-                return -1;
-
-            status_info = efm32hg_ep_out_is_stall(n);
-        }
-
-        return usb_lld_ctrl_send(dev, &status_info, 2);
-    }
-
-    return -1;
+    dev->state = STALLED;
+    efm32hg_ep_out_stall(ENDP0);
+    efm32hg_ep_in_stall(ENDP0);
+    dev->state = WAIT_SETUP;
+    efm32hg_prepare_ep0_setup(dev);
 }
 
 static int
-std_clear_feature(struct usb_dev *dev)
+handle_out0(struct usb_dev *dev)
 {
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (USB_SETUP_GET(arg->type))
-        return -1;
-
-    if (rcp == DEVICE_RECIPIENT)
-    {
-        if (arg->len != 0 || arg->index != 0)
-            return -1;
-
-        if (arg->value == FEATURE_DEVICE_REMOTE_WAKEUP)
-        {
-            dev->feature &= ~(1 << 5);
-            return 0 /*USB_EVENT_CLEAR_FEATURE_DEVICE*/;
-        }
-    }
-    else if (rcp == ENDPOINT_RECIPIENT)
-    {
-        uint8_t n = (arg->index & 0x0f);
-
-        if (dev->configuration == 0)
-            return -1;
-
-        if (arg->len != 0 || (arg->index >> 8) != 0 || arg->value != FEATURE_ENDPOINT_HALT || n == ENDP0)
-            return -1;
-
-        if (arg->index & 0x80)
-        {
-            /* IN endpoint */
-
-            if (efm32hg_ep_in_is_disabled(n))
-                return -1;
-
-            efm32hg_ep_in_unstall(n);
-        }
-        else
-        {
-            /* OUT endpoint */
-
-            if (efm32hg_ep_out_is_disabled(n))
-                return -1;
-
-            efm32hg_ep_out_unstall(n);
-        }
-
-        return 0 /*USB_EVENT_CLEAR_FEATURE_ENDPOINT*/;
-    }
-
-    return -1;
-}
-
-static int
-std_set_feature(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (USB_SETUP_GET(arg->type))
-        return -1;
-
-    if (rcp == DEVICE_RECIPIENT)
-    {
-        if (arg->len != 0 || arg->index != 0)
-            return -1;
-
-        if (arg->value == FEATURE_DEVICE_REMOTE_WAKEUP)
-        {
-            dev->feature |= 1 << 5;
-            return 0 /*USB_EVENT_SET_FEATURE_DEVICE*/;
-        }
-    }
-    else if (rcp == ENDPOINT_RECIPIENT)
-    {
-        uint8_t n = (arg->index & 0x0f);
-
-        if (dev->configuration == 0)
-            return -1;
-
-        if (arg->len != 0 || (arg->index >> 8) != 0 || arg->value != FEATURE_ENDPOINT_HALT || n == ENDP0)
-            return -1;
-
-        if (arg->index & 0x80)
-        {
-            /* IN endpoint */
-
-            if (efm32hg_ep_in_is_disabled(n))
-                return -1;
-
-            efm32hg_ep_in_stall(n);
-        }
-        else
-        {
-            /* OUT endpoint */
-
-            if (efm32hg_ep_out_is_disabled(n))
-                return -1;
-
-            efm32hg_ep_out_stall(n);
-        }
-
-        return 0 /*USB_EVENT_SET_FEATURE_ENDPOINT*/;
-    }
-
-    return -1;
-}
-
-static int
-std_set_address(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (USB_SETUP_GET(arg->type))
-        return -1;
-
-    if (rcp == DEVICE_RECIPIENT && arg->len == 0 && arg->value <= 127 && arg->index == 0 && dev->configuration == 0)
-    {
-        efm32hg_set_daddr(arg->value);
-        efm32hg_prepare_ep0_setup(dev);
-        dev->state = WAIT_STATUS_IN;
-        efm32hg_prepare_ep0_in(NULL, 0, 0);
-        return 0 /*USB_EVENT_DEVICE_ADDRESSED*/;
-    }
-
-    return -1;
-}
-
-/* USB Device Descriptor */
-static const uint8_t u2f_device_desc[18] = {
-  18,   /* bLength */
-  DEVICE_DESCRIPTOR,                /* bDescriptorType */
-  0x10, 0x01,                        /* bcdUSB = 1.1 */
-  0x00,                                /* bDeviceClass (Unknown).          */
-  0x00,                                /* bDeviceSubClass.                 */
-  0x00,                                /* bDeviceProtocol.                 */
-  0x40,                                /* bMaxPacketSize.                  */
-  0x83, 0x04, /* idVendor  */
-  0xab, 0xcd, /* idProduct */
-  0x00, 0x01, /* bcdDevice  */
-  1,                                /* iManufacturer.                   */
-  2,                                /* iProduct.                        */
-  3,                                /* iSerialNumber.                   */
-  1                                /* bNumConfigurations.              */
-};
-
-
-static int
-std_get_descriptor(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    if (USB_SETUP_SET(arg->type))
-        return -1;
-
-    usb_lld_ctrl_send (dev, u2f_device_desc,
-                            sizeof(u2f_device_desc));
-
-    return 0 /*USB_EVENT_GET_DESCRIPTOR*/;
-}
-
-static int
-std_get_configuration(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (USB_SETUP_SET(arg->type))
-        return -1;
-
-    usb_lld_ctrl_send (dev, u2f_device_desc,
-                            sizeof(u2f_device_desc));
-
-    if (arg->value != 0 || arg->index != 0 || arg->len != 1)
-        return -1;
-
-    if (rcp == DEVICE_RECIPIENT)
-        return usb_lld_ctrl_send(dev, &dev->configuration, 1);
-
-    return -1;
-}
-
-static int
-std_set_configuration(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (USB_SETUP_GET(arg->type))
-        return -1;
-
-    if (rcp == DEVICE_RECIPIENT && arg->index == 0 && arg->len == 0)
-        return 0 /*USB_EVENT_SET_CONFIGURATION*/;
-
-    return -1;
-}
-
-static int
-std_get_interface(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (USB_SETUP_SET(arg->type))
-        return -1;
-
-    if (arg->value != 0 || (arg->index >> 8) != 0 || arg->len != 1)
-        return -1;
-
-    if (dev->configuration == 0)
-        return -1;
-
-    if (rcp == INTERFACE_RECIPIENT)
-        return 0 /*USB_EVENT_GET_INTERFACE*/;
-
-    return -1;
-}
-
-static int
-std_set_interface(struct usb_dev *dev)
-{
-    struct device_req *arg = &dev->dev_req;
-    uint8_t rcp = arg->type & RECIPIENT;
-
-    if (USB_SETUP_GET(arg->type) || rcp != INTERFACE_RECIPIENT || arg->len != 0 || (arg->index >> 8) != 0 || (arg->value >> 8) != 0 || dev->configuration == 0)
-        return -1;
-
-    return 0 /*USB_EVENT_SET_INTERFACE*/;
-}
-
-/* --------------------------------------- */
-
-static int
-handle_out0 (struct usb_dev *dev)
-{
-  if (dev->state == OUT_DATA)
-    /* It's normal control WRITE transfer.  */
-    handle_datastage_out (dev);
-  else if (dev->state == WAIT_STATUS_OUT)
+    if (dev->state == OUT_DATA)
+        /* It's normal control WRITE transfer.  */
+        handle_datastage_out(dev);
+    else if (dev->state == WAIT_STATUS_OUT)
     { /* Control READ transfer done successfully.  */
-      efm32hg_prepare_ep0_setup (dev);
-      dev->state = WAIT_SETUP;
+        efm32hg_prepare_ep0_setup(dev);
+        dev->state = WAIT_SETUP;
     }
-  else
+    else
     {
-      /*
+        /*
        * dev->state == IN_DATA || dev->state == LAST_IN_DATA
        * (Host aborts the transfer before finish)
        * Or else, unexpected state.
        * STALL the endpoint, until we receive the next SETUP token.
        */
-      dev->state = STALLED;
-      efm32hg_ep_out_stall (ENDP0);
-      efm32hg_ep_in_stall (ENDP0);
-      dev->state = WAIT_SETUP;
-      efm32hg_prepare_ep0_setup (dev);
+        dev->state = STALLED;
+        efm32hg_ep_out_stall(ENDP0);
+        efm32hg_ep_in_stall(ENDP0);
+        dev->state = WAIT_SETUP;
+        efm32hg_prepare_ep0_setup(dev);
     }
-    return 0/*USB_EVENT_OK*/;
+    return 0 /*USB_EVENT_OK*/;
 }
 
 static int
 handle_setup0(struct usb_dev *dev)
 {
-    struct ctrl_data *data_p = &dev->ctrl_data;
-    int r = -1;
-    HANDLER handler;
+    const uint8_t *data = NULL;
+    uint32_t datalen = 0;
+    const usb_descriptor_list_t *list;
 
-    data_p->addr = NULL;
-    data_p->len = 0;
-    data_p->require_zlp = 0;
-
-    if ((dev->dev_req.type & REQUEST_TYPE) == STANDARD_REQUEST)
+    switch (dev->dev_req.wRequestAndType)
     {
-        switch (dev->dev_req.request)
+    case 0x0500: // SET_ADDRESS
+        efm32hg_set_daddr (dev->dev_req.wValue);
+        break;
+    case 0x0900: // SET_CONFIGURATION
+        usb_configuration = dev->dev_req.wValue;
+        break;
+    case 0x0880: // GET_CONFIGURATION
+        reply_buffer[0] = usb_configuration;
+        datalen = 1;
+        data = reply_buffer;
+        break;
+    case 0x0080: // GET_STATUS (device)
+        reply_buffer[0] = 0;
+        reply_buffer[1] = 0;
+        datalen = 2;
+        data = reply_buffer;
+        break;
+    case 0x0680: // GET_DESCRIPTOR
+    case 0x0681:
+        for (list = usb_descriptor_list; 1; list++)
         {
-        case 0:
-            handler = std_get_status;
-            break;
-        case 1:
-            handler = std_clear_feature;
-            break;
-        case 3:
-            handler = std_set_feature;
-            break;
-        case 5:
-            handler = std_set_address;
-            break;
-        case 6:
-            handler = std_get_descriptor;
-            break;
-        case 8:
-            handler = std_get_configuration;
-            break;
-        case 9:
-            handler = std_set_configuration;
-            break;
-        case 10:
-            handler = std_get_interface;
-            break;
-        case 11:
-            handler = std_set_interface;
-            break;
-        default:
-            handler = std_none;
-            break;
+            if (list->addr == NULL)
+                break;
+            if (dev->dev_req.wValue == list->wValue)
+            {
+                data = list->addr;
+                if ((dev->dev_req.wValue >> 8) == 3)
+                {
+                    // for string descriptors, use the descriptor's
+                    // length field, allowing runtime configured
+                    // length.
+                    datalen = *(list->addr);
+                }
+                else
+                {
+                    datalen = list->length;
+                }
+                goto send;
+            }
         }
-
-        if ((r = (*handler)(dev)) < 0)
-        {
-            usb_lld_ctrl_error(dev);
-            return 0 /*USB_EVENT_OK*/;
-        }
-        else
-            return r;
+        usb_lld_ctrl_error(dev);
+        return 0;
+    default:
+        usb_lld_ctrl_error(dev);
+        return 0;
     }
+
+send:
+    if (data && datalen)
+        usb_lld_ctrl_send(dev, data, datalen);
     else
-        return -1 /*USB_EVENT_CTRL_REQUEST*/;
+        usb_lld_ctrl_ack(dev);
 }
 
 static int
@@ -999,7 +697,6 @@ handle_in0(struct usb_dev *dev)
 void USB_Handler(void)
 {
     uint32_t intsts = USB->GINTSTS & USB->GINTMSK;
-    uint16_t len;
     uint8_t ep;
     //    int r = USB_EVENT_OK;
 
@@ -1087,7 +784,7 @@ void USB_Handler(void)
                             /*r = */ handle_setup0(dev);
                         }
                         else if (dev->state != WAIT_SETUP)
-                            /*r = */handle_out0(dev);
+                            /*r = */ handle_out0(dev);
                     }
                     else /* ep != 0 */
                     {

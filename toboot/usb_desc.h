@@ -36,11 +36,16 @@
 #include "dfu.h"
 
 struct device_req {
-  uint8_t type;
-  uint8_t request;
-  uint16_t value;
-  uint16_t index;
-  uint16_t len;
+    union {
+        struct {
+            uint8_t bmRequestType;
+            uint8_t bRequest;
+        };
+        uint16_t wRequestAndType;
+    };
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
 };
 
 struct ctrl_data {
