@@ -80,7 +80,7 @@ enum DESCRIPTOR_TYPE
 
 static struct device_req ep0_setup_pkt[3] __attribute__((aligned(4)));
 static char ctrl_send_buf[USB_MAX_PACKET_SIZE] __attribute__((aligned(4)));
-static uint8_t rx_buffer[64];
+static uint8_t rx_buffer[USB_MAX_PACKET_SIZE];
 
 /* The state machine states of a control pipe */
 enum CONTROL_STATE
@@ -588,8 +588,13 @@ static void usb_setup(struct usb_dev *dev)
                 usb_lld_ctrl_error(dev);
                 return;
             }
+            usb_lld_ctrl_ack(dev);
+            return;
         }
-        usb_lld_ctrl_recv(dev, rx_buffer, dev->dev_req.wLength);
+        int len = dev->dev_req.wLength;
+        if (len > sizeof(rx_buffer))
+            len = sizeof(rx_buffer);
+        usb_lld_ctrl_recv(dev, rx_buffer, len);
         return;
 
     case 0x03a1: // DFU_GETSTATUS

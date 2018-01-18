@@ -7,8 +7,8 @@ ENTRY(Reset_Handler)
 MEMORY
 {
     bl_flash   :  org = 0x00000000,  len = 8k,
-    storage    :  org = 0x00002000,  len = 2k,
-    app_flash  :  org = 0x00002800,  len = 16k,
+/*    storage    :  org = 0x00002000,  len = 2k, */
+    app_flash  :  org = 0x00002000,  len = 0xE000,
     ram        :  org = 0x20000000,  len = 8k
 }
 

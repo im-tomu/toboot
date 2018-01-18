@@ -44,6 +44,8 @@ static void start_rtc(void)
 
 void __early_init(void)
 {
+    //void (*function)(void) = 0x2004;
+    //function();
     // Enable peripheral clocks.
     CMU->HFPERCLKDIV = CMU_HFPERCLKDIV_HFPERCLKEN;
     CMU->HFPERCLKEN0 = CMU_HFPERCLKEN0_GPIO | BOOTLOADER_USART_CLOCKEN | AUTOBAUD_TIMER_CLOCK;
@@ -172,7 +174,7 @@ __attribute__((noreturn)) static void boot_app(void)
 
     // Switch to default cpu clock.
     CMU->CMD = CMU_CMD_HFCLKSEL_HFRCO;
-    CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS | CMU_OSCENCMD_LFRCODIS;
+    CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS | CMU_OSCENCMD_LFRCODIS | CMU_OSCENCMD_AUXHFRCODIS;
 
     // Reset clock registers used
     CMU->HFCORECLKEN0 = _CMU_HFCORECLKEN0_RESETVALUE;

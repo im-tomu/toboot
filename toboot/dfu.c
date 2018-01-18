@@ -84,13 +84,13 @@ static void ftfl_begin_program_section(uint32_t address, uint32_t numLWords)
     // Note that after this is done, the address is incremented by 4.
     dfu_buffer_offset = 0;
     dfu_target_address = address;
-    block_num_words = numLWords;
-
+    block_num_words = numLWords - 1;
 ftfl_busy_wait();
     MSC->ADDRB = address;
+    if ((dfu_target_address & 0x3ff))
+        asm("bkpt #232");
 ftfl_busy_wait();
     MSC->WRITECTRL |= MSC_WRITECTRL_WREN;
-
     MSC->WDATA = dfu_buffer[dfu_buffer_offset++];
     MSC->WRITECMD = MSC_WRITECMD_WRITEONCE;
 }
@@ -310,30 +310,32 @@ void MSC_Handler(void) {
 
     // ERASE interrupt will happen once an erase has completed,
     // and we need to start writing words.
-    if (msc_irq_reason | MSC_IF_ERASE) {
+    if (msc_irq_reason & MSC_IF_ERASE) {
         // Set target address to the desired target address,
         // since the address was cleared after the erase finished.
-ftfl_busy_wait();
         //MSC->ADDRB = dfu_target_address;
         //MSC->WRITECMD = MSC_WRITECMD_LADDRIM;
-ftfl_busy_wait();
 
         // Write the buffer word to the currently selected address.
         // Note that after this is done, the address is incremented by 4.
     }
 
-    if (msc_irq_reason | MSC_IF_WRITE) {
+    if (msc_irq_reason & MSC_IF_WRITE) {
         // Write the buffer word to the currently selected address.
         // Note that after this is done, the address is incremented by 4.
-        if (--block_num_words) {
+        if (block_num_words > 0) {
+            block_num_words--;
             dfu_target_address += 4;
 ftfl_busy_wait();
+            if (!(dfu_target_address & 0x3ff))
+                asm("bkpt #231");
             MSC->ADDRB = dfu_target_address;
 ftfl_busy_wait();
             MSC->WDATA = dfu_buffer[dfu_buffer_offset++]; 
             MSC->WRITECMD = MSC_WRITECMD_WRITEONCE;
         }
         else {
+            // Move to the IDLE state only if we're out of data to write.
             fl_state = flsIDLE;
         }
     }
