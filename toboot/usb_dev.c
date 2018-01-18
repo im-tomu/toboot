@@ -40,43 +40,10 @@
 #define STANDARD_ENDPOINT_DESC_SIZE 0x09
 #define USB_MAX_PACKET_SIZE 64 /* For FS device */
 
-/* endpoints enumeration */
-#define ENDP0 ((uint8_t)0)
-#define ENDP1 ((uint8_t)1)
-#define ENDP2 ((uint8_t)2)
-#define ENDP3 ((uint8_t)3)
-#define ENDP4 ((uint8_t)4)
-#define ENDP5 ((uint8_t)5)
-#define ENDP6 ((uint8_t)6)
-#define ENDP7 ((uint8_t)7)
-
 volatile uint8_t usb_configuration = 0;
 
 void *memcpy(void *dst, const void *src, size_t cnt);
-
-enum RECIPIENT_TYPE
-{
-    DEVICE_RECIPIENT = 0, /* Recipient device    */
-    INTERFACE_RECIPIENT,  /* Recipient interface */
-    ENDPOINT_RECIPIENT,   /* Recipient endpoint  */
-    OTHER_RECIPIENT
-};
-
-enum DESCRIPTOR_TYPE
-{
-    DEVICE_DESCRIPTOR = 1,
-    CONFIG_DESCRIPTOR,
-    STRING_DESCRIPTOR,
-    INTERFACE_DESCRIPTOR,
-    ENDPOINT_DESCRIPTOR
-};
-
-#define REQUEST_DIR 0x80      /* Mask to get request dir  */
-#define REQUEST_TYPE 0x60     /* Mask to get request type */
-#define STANDARD_REQUEST 0x00 /* Standard request         */
-#define CLASS_REQUEST 0x20    /* Class request            */
-#define VENDOR_REQUEST 0x40   /* Vendor request           */
-#define RECIPIENT 0x1F        /* Mask to get recipient    */
+static uint32_t ep0_rx_offset;
 
 static struct device_req ep0_setup_pkt[3] __attribute__((aligned(4)));
 static char ctrl_send_buf[USB_MAX_PACKET_SIZE] __attribute__((aligned(4)));
@@ -116,8 +83,7 @@ void efm32hg_core_reset(void)
     }
 }
 
-static void
-efm32hg_flush_rx_fifo(void)
+static void efm32hg_flush_rx_fifo(void)
 {
     USB->GRSTCTL = USB_GRSTCTL_RXFFLSH;
     while (USB->GRSTCTL & USB_GRSTCTL_RXFFLSH)
@@ -125,8 +91,7 @@ efm32hg_flush_rx_fifo(void)
     }
 }
 
-static void
-efm32hg_flush_tx_fifo(uint8_t n)
+static void efm32hg_flush_tx_fifo(uint8_t n)
 {
     USB->GRSTCTL = USB_GRSTCTL_TXFFLSH | (n << 6);
     while (USB->GRSTCTL & USB_GRSTCTL_TXFFLSH)
@@ -134,8 +99,7 @@ efm32hg_flush_tx_fifo(uint8_t n)
     }
 }
 
-static void
-efm32hg_enable_ints(void)
+static void efm32hg_enable_ints(void)
 {
     /* Disable all interrupts. */
     USB->GINTMSK = 0;
@@ -146,20 +110,12 @@ efm32hg_enable_ints(void)
     USB->GINTMSK = USB_GINTMSK_USBRSTMSK | USB_GINTMSK_ENUMDONEMSK | USB_GINTMSK_IEPINTMSK | USB_GINTMSK_OEPINTMSK;
 }
 
-static void
-efm32hg_connect(void)
+static void efm32hg_connect(void)
 {
     USB->DCTL &= ~(DCTL_WO_BITMASK | USB_DCTL_SFTDISCON);
 }
 
-static void __attribute__((unused))
-efm32hg_disconnect(void)
-{
-    USB->DCTL = (USB->DCTL & ~DCTL_WO_BITMASK) | USB_DCTL_SFTDISCON;
-}
-
-static void
-efm32hg_set_daddr(uint8_t daddr)
+static void efm32hg_set_daddr(uint8_t daddr)
 {
     USB->DCFG = (USB->DCFG & ~_USB_DCFG_DEVADDR_MASK) | (daddr << 4);
 }
@@ -176,109 +132,44 @@ efm32hg_prepare_ep0_setup(struct usb_dev *dev)
 }
 
 static void
-efm32hg_prepare_ep0_out(const void *buf, size_t len, uint32_t ep0mps)
+efm32hg_prepare_ep0_out(const void *buf, size_t len)
 {
     USB->DOEP0DMAADDR = (uint32_t)buf;
     USB->DOEP0TSIZ = (len << 0)   /* XFERSIZE */
                      | (1 << 19); /* PKTCNT */
-    USB->DOEP0CTL = (USB->DOEP0CTL & ~DEPCTL_WO_BITMASK) | USB_DOEP0CTL_CNAK | USB_DOEP0CTL_EPENA | ep0mps;
+    USB->DOEP0CTL = (USB->DOEP0CTL & ~DEPCTL_WO_BITMASK) | USB_DOEP0CTL_CNAK | USB_DOEP0CTL_EPENA;
 }
 
 static void
-efm32hg_prepare_ep0_in(const void *buf, size_t len, uint32_t ep0mps)
+efm32hg_prepare_ep0_in(const void *buf, size_t len)
 {
     USB->DIEP0DMAADDR = (uint32_t)buf;
     USB->DIEP0TSIZ = (len << 0)   /* XFERSIZE */
                      | (1 << 19); /* PKTCNT */
-    USB->DIEP0CTL = (USB->DIEP0CTL & ~DEPCTL_WO_BITMASK) | USB_DIEP0CTL_CNAK | USB_DIEP0CTL_EPENA | ep0mps;
+    USB->DIEP0CTL = (USB->DIEP0CTL & ~DEPCTL_WO_BITMASK) | USB_DIEP0CTL_CNAK | USB_DIEP0CTL_EPENA;
+}
+
+static void efm32hg_ep0_out_stall(void)
+{
+    USB_DOUTEPS[0].CTL = (USB_DOUTEPS[0].CTL & ~DEPCTL_WO_BITMASK) | USB_DIEP_CTL_STALL;
 }
 
 static void
-efm32hg_ep_out_stall(uint8_t n)
+efm32hg_ep0_in_stall(void)
 {
-    uint32_t ctl = USB_DOUTEPS[n].CTL & ~DEPCTL_WO_BITMASK;
-    uint32_t eptype = ctl & 0xC0000UL;
+    uint32_t ctl = USB_DOUTEPS[0].CTL & ~DEPCTL_WO_BITMASK;
 
-    if (eptype != USB_DOEP_CTL_EPTYPE_ISO)
-    {
-        ctl |= USB_DIEP_CTL_STALL;
-        USB_DOUTEPS[n].CTL = ctl;
-    }
+    USB_DINEPS[0].CTL |= USB_DIEP_CTL_STALL;
+    if (ctl & USB_DIEP_CTL_EPENA)
+        ctl |= USB_DIEP_CTL_EPDIS;
+    USB_DINEPS[0].CTL = ctl;
 }
-
-static void
-efm32hg_ep_in_stall(uint8_t n)
-{
-    uint32_t ctl = USB_DOUTEPS[n].CTL & ~DEPCTL_WO_BITMASK;
-    uint32_t eptype = ctl & 0xC0000UL;
-
-    if (eptype != USB_DIEP_CTL_EPTYPE_ISO)
-    {
-        USB_DINEPS[n].CTL |= USB_DIEP_CTL_STALL;
-        if (ctl & USB_DIEP_CTL_EPENA)
-            ctl |= USB_DIEP_CTL_EPDIS;
-        USB_DINEPS[n].CTL = ctl;
-    }
-}
-/*
-static void
-efm32hg_ep_out_unstall(uint8_t n)
-{
-    uint32_t ctl = USB_DOUTEPS[n].CTL & ~DEPCTL_WO_BITMASK;
-    uint32_t eptype = ctl & 0xC0000UL;
-
-    if (eptype == USB_DOEP_CTL_EPTYPE_INT || eptype == USB_DOEP_CTL_EPTYPE_BULK)
-    {
-        ctl |= USB_DOEP_CTL_SETD0PIDEF;
-        ctl &= ~USB_DOEP_CTL_STALL;
-        USB_DOUTEPS[n].CTL = ctl;
-    }
-}
-
-static void
-efm32hg_ep_in_unstall(uint8_t n)
-{
-    uint32_t ctl = USB_DINEPS[n].CTL & ~DEPCTL_WO_BITMASK;
-    uint32_t eptype = ctl & 0xC0000UL;
-
-    if (eptype == USB_DIEP_CTL_EPTYPE_INT || eptype == USB_DIEP_CTL_EPTYPE_BULK)
-    {
-        ctl |= USB_DIEP_CTL_SETD0PIDEF;
-        ctl &= ~USB_DIEP_CTL_STALL;
-        USB_DINEPS[n].CTL = ctl;
-    }
-}
-
-static int
-efm32hg_ep_in_is_stall(uint8_t n)
-{
-    return (USB_DINEPS[n].CTL & USB_DIEP_CTL_STALL) ? 1 : 0;
-}
-
-static int
-efm32hg_ep_out_is_stall(uint8_t n)
-{
-    return (USB_DOUTEPS[n].CTL & USB_DOEP_CTL_STALL) ? 1 : 0;
-}
-
-static int
-efm32hg_ep_in_is_disabled(uint8_t n)
-{
-    return (USB_DINEPS[n].CTL & USB_DIEP_CTL_EPENA) ? 0 : 1;
-}
-
-static int
-efm32hg_ep_out_is_disabled(uint8_t n)
-{
-    return (USB_DOUTEPS[n].CTL & USB_DOEP_CTL_EPENA) ? 0 : 1;
-}
-*/
 
 static void handle_datastage_out(struct usb_dev *dev)
 {
     struct ctrl_data *data_p = &dev->ctrl_data;
     uint32_t len = USB->DOEP0TSIZ & 0x7FUL; /* XFERSIZE */
-    uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
+    uint32_t pktsize = 64;
 
     data_p->len -= len;
     data_p->addr += len;
@@ -287,16 +178,18 @@ static void handle_datastage_out(struct usb_dev *dev)
 
     if (data_p->len == 0)
     {
+        #if 0
         asm("bkpt #93");
         /* No more data to receive, proceed to send acknowledge for IN.  */
         efm32hg_prepare_ep0_setup(dev);
         dev->state = WAIT_STATUS_IN;
         efm32hg_prepare_ep0_in(NULL, 0, 0);
+        #endif
     }
     else
     {
         dev->state = OUT_DATA;
-        efm32hg_prepare_ep0_out(data_p->addr, len, 0);
+        efm32hg_prepare_ep0_out(data_p->addr, len);
     }
 }
 
@@ -314,13 +207,13 @@ handle_datastage_in(struct usb_dev *dev)
 
             efm32hg_prepare_ep0_setup(dev);
             /* No more data to send.  Send empty packet */
-            efm32hg_prepare_ep0_in(NULL, 0, 0);
+            efm32hg_prepare_ep0_in(NULL, 0);
         }
         else
         {
             /* No more data to send, proceed to receive OUT acknowledge.  */
             dev->state = WAIT_STATUS_OUT;
-            efm32hg_prepare_ep0_out(NULL, 0, 0);
+            efm32hg_prepare_ep0_out(NULL, 0);
         }
 
         return;
@@ -332,32 +225,30 @@ handle_datastage_in(struct usb_dev *dev)
         len = data_p->len;
 
     efm32hg_prepare_ep0_setup(dev);
-    efm32hg_prepare_ep0_in(data_p->addr, len, 0);
+    efm32hg_prepare_ep0_in(data_p->addr, len);
     data_p->len -= len;
     data_p->addr += len;
 }
 
-int usb_lld_ctrl_recv(struct usb_dev *dev, void *p, size_t len)
+void usb_lld_ctrl_recv(struct usb_dev *dev, void *p, size_t len)
 {
     struct ctrl_data *data_p = &dev->ctrl_data;
-    uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
+    uint32_t pktsize = 64;
     data_p->addr = (uint8_t *)p;
     data_p->len = len;
     if (len > pktsize)
         len = pktsize;
 
-    efm32hg_prepare_ep0_out(p, len, 0);
+    efm32hg_prepare_ep0_out(p, len);
     dev->state = OUT_DATA;
-    return 0;
 }
 
-int usb_lld_ctrl_ack(struct usb_dev *dev)
+void usb_lld_ctrl_ack(struct usb_dev *dev)
 {
     /* Zero length packet for ACK.  */
     efm32hg_prepare_ep0_setup(dev);
     dev->state = WAIT_STATUS_IN;
-    efm32hg_prepare_ep0_in(NULL, 0, 0);
-    return 0;
+    efm32hg_prepare_ep0_in(NULL, 0);
 }
 
 /*
@@ -366,12 +257,12 @@ int usb_lld_ctrl_ack(struct usb_dev *dev)
  *
  * BUFLEN: size of the data.
  */
-int usb_lld_ctrl_send(struct usb_dev *dev, const void *buf, size_t buflen)
+void usb_lld_ctrl_send(struct usb_dev *dev, const void *buf, size_t buflen)
 {
     struct ctrl_data *data_p = &dev->ctrl_data;
     uint32_t len_asked = dev->dev_req.wLength;
     uint32_t len;
-    uint32_t pktsize = 64 >> (USB->DIEP0CTL & 0x3UL);
+    uint32_t pktsize = 64;
 
     data_p->addr = (void *)buf;
     data_p->len = buflen;
@@ -380,7 +271,7 @@ int usb_lld_ctrl_send(struct usb_dev *dev, const void *buf, size_t buflen)
     if (data_p->len > len_asked)
         data_p->len = len_asked;
 
-    data_p->require_zlp = (data_p->len != 0 && (data_p->len % pktsize) == 0);
+    data_p->require_zlp = (data_p->len != 0 && (data_p->len & (pktsize - 1)) == 0);
 
     if (((uint32_t)data_p->addr & 3) && (data_p->len <= pktsize))
     {
@@ -399,24 +290,21 @@ int usb_lld_ctrl_send(struct usb_dev *dev, const void *buf, size_t buflen)
         dev->state = IN_DATA;
     }
 
-    efm32hg_prepare_ep0_in(data_p->addr, len, 0);
+    efm32hg_prepare_ep0_in(data_p->addr, len);
 
     data_p->len -= len;
     data_p->addr += len;
-
-    return 0 /*USB_EVENT_OK*/;
 }
 
 void usb_lld_ctrl_error(struct usb_dev *dev)
 {
     dev->state = STALLED;
-    efm32hg_ep_out_stall(ENDP0);
-    efm32hg_ep_in_stall(ENDP0);
+    efm32hg_ep0_out_stall();
+    efm32hg_ep0_in_stall();
     dev->state = WAIT_SETUP;
     efm32hg_prepare_ep0_setup(dev);
 }
 
-static uint32_t ep0_rx_offset;
 static void handle_out0(struct usb_dev *dev)
 {
     if (dev->state == OUT_DATA) {
@@ -591,7 +479,7 @@ static void usb_setup(struct usb_dev *dev)
             usb_lld_ctrl_ack(dev);
             return;
         }
-        int len = dev->dev_req.wLength;
+        unsigned int len = dev->dev_req.wLength;
         if (len > sizeof(rx_buffer))
             len = sizeof(rx_buffer);
         usb_lld_ctrl_recv(dev, rx_buffer, len);
@@ -684,25 +572,24 @@ static void handle_in0(struct usb_dev *dev)
     }
     else
     {
+        #if 0
         asm("bkpt #64");
         dev->state = STALLED;
-        efm32hg_ep_out_stall(ENDP0);
-        efm32hg_ep_in_stall(ENDP0);
+        efm32hg_ep0_out_stall();
+        efm32hg_ep0_in_stall();
         dev->state = WAIT_SETUP;
         efm32hg_prepare_ep0_setup(dev);
+        #endif
     }
 }
 
 void USB_Handler(void)
 {
     uint32_t intsts = USB->GINTSTS & USB->GINTMSK;
-    uint8_t ep;
-    //    int r = USB_EVENT_OK;
 
     if (intsts & USB_GINTSTS_USBRST)
     {
         USB->GINTSTS = USB_GINTSTS_USBRST;
-        //        return USB_MAKE_EV(USB_EVENT_DEVICE_RESET);
         return;
     }
 
@@ -716,103 +603,64 @@ void USB_Handler(void)
 
     if (intsts & USB_GINTSTS_IEPINT)
     {
-        uint32_t epint = (USB->DAINT & USB->DAINTMSK) & _USB_DAINTMSK_INEPMSK_MASK;
-
-        ep = 0;
-        while (epint != 0)
+        uint32_t sts = USB_DINEPS[0].INT & USB->DIEPMSK;
+        if (sts & USB_DIEP_INT_XFERCOMPL)
         {
-            if (epint & 1)
-            {
-                uint32_t sts = USB_DINEPS[ep].INT & USB->DIEPMSK;
-                if (sts & USB_DIEP_INT_XFERCOMPL)
-                {
-                    USB_DINEPS[ep].INT = USB_DIEP_INT_XFERCOMPL;
-                    if (ep == 0)
-                        handle_in0(dev);
-                    else
-                    {
-                        // Unsupported in this bootloader.
-                        asm("bkpt #99");
-                        return;
-                    }
-                }
-            }
-            ep++;
-            epint >>= 1;
+            USB_DINEPS[0].INT = USB_DIEP_INT_XFERCOMPL;
+            handle_in0(dev);
         }
     }
 
     if (intsts & USB_GINTSTS_OEPINT)
     {
-        uint32_t epint = ((USB->DAINT & USB->DAINTMSK) & _USB_DAINTMSK_OUTEPMSK_MASK) >> 16;
+        uint32_t sts = USB_DOUTEPS[0].INT & USB->DOEPMSK;
 
-        ep = 0;
-        while (epint != 0)
+        if (sts & USB_DOEP0INT_STUPPKTRCVD)
         {
-            if (epint & 1)
-            {
-                uint32_t sts = USB_DOUTEPS[ep].INT & USB->DOEPMSK;
-
-                if (ep == 0 && sts & USB_DOEP0INT_STUPPKTRCVD)
-                {
-                    USB_DOUTEPS[ep].INT = USB_DOEP0INT_STUPPKTRCVD;
-                    sts &= ~USB_DOEP_INT_XFERCOMPL;
-                }
-
-                if (sts & USB_DOEP_INT_XFERCOMPL)
-                {
-                    USB_DOUTEPS[ep].INT = USB_DOEP_INT_XFERCOMPL;
-                    if (ep == 0)
-                    {
-                        sts = USB->DOEP0INT & USB->DOEPMSK;
-
-                        USB_DOUTEPS[ep].INT = USB_DOEP0INT_STUPPKTRCVD;
-
-                        if (sts & USB_DOEP0INT_SETUP)
-                        {
-                            USB->DOEP0INT = USB_DOEP0INT_SETUP;
-                            int supcnt = (USB->DOEP0TSIZ & 0x60000000UL) >> 29;
-                            supcnt = (supcnt == 3) ? 2 : supcnt;
-                            dev->dev_req = ep0_setup_pkt[2 - supcnt];
-                            usb_setup(dev);
-                        }
-                        else if (dev->state != WAIT_SETUP)
-                            handle_out0(dev);
-                    }
-                    else /* ep != 0 */
-                    {
-                        asm("bkpt #98");
-                        return;
-                    }
-                }
-                else
-                {
-                    if (ep == 0 && sts & USB_DOEP0INT_SETUP)
-                    {
-                        USB->DOEP0INT = USB_DOEP0INT_SETUP;
-                        int supcnt = (USB->DOEP0TSIZ & 0x60000000UL) >> 29;
-                        supcnt = (supcnt == 3) ? 2 : supcnt;
-                        dev->dev_req = ep0_setup_pkt[2 - supcnt];
-                        usb_setup(dev);
-                    }
-                }
-
-                if (sts & USB_DOEP0INT_STSPHSERCVD)
-                    USB->DOEP0INT = USB_DOEP0INT_STSPHSERCVD;
-            }
-            ep++;
-            epint >>= 1;
+            USB_DOUTEPS[0].INT = USB_DOEP0INT_STUPPKTRCVD;
+            sts &= ~USB_DOEP_INT_XFERCOMPL;
         }
+
+        if (sts & USB_DOEP_INT_XFERCOMPL)
+        {
+            USB_DOUTEPS[0].INT = USB_DOEP_INT_XFERCOMPL;
+            sts = USB->DOEP0INT & USB->DOEPMSK;
+
+            USB_DOUTEPS[0].INT = USB_DOEP0INT_STUPPKTRCVD;
+
+            if (sts & USB_DOEP0INT_SETUP)
+            {
+                USB->DOEP0INT = USB_DOEP0INT_SETUP;
+                int supcnt = (USB->DOEP0TSIZ & 0x60000000UL) >> 29;
+                supcnt = (supcnt == 3) ? 2 : supcnt;
+                dev->dev_req = ep0_setup_pkt[2 - supcnt];
+                usb_setup(dev);
+            }
+            else if (dev->state != WAIT_SETUP)
+                handle_out0(dev);
+        }
+        else
+        {
+            if (sts & USB_DOEP0INT_SETUP)
+            {
+                USB->DOEP0INT = USB_DOEP0INT_SETUP;
+                int supcnt = (USB->DOEP0TSIZ & 0x60000000UL) >> 29;
+                supcnt = (supcnt == 3) ? 2 : supcnt;
+                dev->dev_req = ep0_setup_pkt[2 - supcnt];
+                usb_setup(dev);
+            }
+        }
+
+        if (sts & USB_DOEP0INT_STSPHSERCVD)
+            USB->DOEP0INT = USB_DOEP0INT_STSPHSERCVD;
     }
 }
 
 static int usb_core_init(void)
 {
     const uint32_t total_rx_fifo_size = 128;
-    const uint32_t total_tx_fifo_size = 256;
     const uint32_t ep_tx_fifo_size = 64;
     uint32_t address, depth;
-    uint8_t ep;
 
     USB->ROUTE = USB_ROUTE_PHYPEN; /* Enable PHY pins.  */
 
@@ -853,22 +701,7 @@ static int usb_core_init(void)
     address = total_rx_fifo_size;
     depth = ep_tx_fifo_size;
     USB->GNPTXFSIZ = (depth << 16 /*NPTXFINEPTXF0DEP*/) | address /*NPTXFSTADDR*/;
-
-    /* Set Tx EP FIFO sizes for all IN ep's */
-    for (ep = 1; ep <= MAX_NUM_IN_EPS; ep++)
-    {
-        address += depth;
-        depth = ep_tx_fifo_size;
-        USB_DIEPTXFS[ep - 1] = (depth << 16)          /* INEPNTXFDEP */
-                               | (address & 0x7FFUL); /* INEPNTXFSTADDR */
-    }
-
-    if (total_rx_fifo_size + total_tx_fifo_size > MAX_DEVICE_FIFO_SIZE_INWORDS)
-        return -1;
-
-    if (address > MAX_DEVICE_FIFO_SIZE_INWORDS)
-        return -1;
-
+#if 0
     /* Flush the FIFO's */
     efm32hg_flush_tx_fifo(0x10); /* All Tx FIFO's */
     efm32hg_flush_rx_fifo();     /* The Rx FIFO   */
@@ -880,20 +713,14 @@ static int usb_core_init(void)
     USB->DIEPEMPMSK = 0;
 
     /* Disable all EP's, clear all EP ints. */
-    for (ep = 0; ep <= MAX_NUM_IN_EPS; ep++)
-    {
-        USB_DINEPS[ep].CTL = 0;
-        USB_DINEPS[ep].TSIZ = 0;
-        USB_DINEPS[ep].INT = 0xFFFFFFFF;
-    }
+    USB_DINEPS[0].CTL = 0;
+    USB_DINEPS[0].TSIZ = 0;
+    USB_DINEPS[0].INT = 0xFFFFFFFF;
 
-    for (ep = 0; ep <= MAX_NUM_OUT_EPS; ep++)
-    {
-        USB_DOUTEPS[ep].CTL = 0;
-        USB_DOUTEPS[ep].TSIZ = 0;
-        USB_DOUTEPS[ep].INT = 0xFFFFFFFF;
-    }
-
+    USB_DOUTEPS[0].CTL = 0;
+    USB_DOUTEPS[0].TSIZ = 0;
+    USB_DOUTEPS[0].INT = 0xFFFFFFFF;
+#endif
     efm32hg_connect();
 
     return 0;
@@ -904,20 +731,10 @@ void usb_init(void)
     // Follow section 14.3.2 USB Initialization, EFM32HG-RM.pdf
     struct efm32hg_rev rev;
 
-    /* Ensure selected oscillator is enabled, waiting for it to stabilize */
-    CMU->OSCENCMD = CMU_OSCENCMD_LFRCOEN;
-    while (!(CMU->STATUS & CMU_STATUS_LFRCORDY))
-        ;
-
     /* Select LFRCO as LFCCLK clock */
     CMU->LFCLKSEL = (CMU->LFCLKSEL & ~0x30UL) | (0x1 /* LFRCO */ << 4 /* LFC */);
 
     CMU->LFCCLKEN0 |= CMU_LFCCLKEN0_USBLE;
-
-    /* Enable USB clock */
-    CMU->HFCORECLKEN0 |= CMU_HFCORECLKEN0_USB | CMU_HFCORECLKEN0_USBC;
-
-    CMU->USHFRCOCONF = CMU_USHFRCOCONF_BAND_48MHZ;
 
     /* Select USHFRCO as clock source for USB */
     CMU->OSCENCMD = CMU_OSCENCMD_USHFRCOEN;
@@ -930,9 +747,6 @@ void usb_init(void)
     /* Wait until clock is activated */
     while ((CMU->STATUS & CMU_STATUS_USBCUSHFRCOSEL) == 0)
         ;
-
-    /* Enable USHFRCO Clock Recovery mode. */
-    CMU->USBCRCTRL |= CMU_USBCRCTRL_EN;
 
     /* Turn on Low Energy Mode (LEM) features. */
     efm32hg_revno(&rev);
