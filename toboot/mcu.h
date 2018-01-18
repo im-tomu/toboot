@@ -2283,6 +2283,8 @@ typedef struct
 /* Bit fields for USB DAINTMSK */
 #define _USB_DAINTMSK_RESETVALUE                   0x00000000UL                            /**< Default value for USB_DAINTMSK */
 #define _USB_DAINTMSK_MASK                         0x000F000FUL                            /**< Mask for USB_DAINTMSK */
+#define _USB_DAINTMSK_INEPMSK_MASK                 0x0000000FUL                            /**< Mask for USB_DAINTMSK inputs */
+#define _USB_DAINTMSK_OUTEPMSK_MASK                0x000F0000UL                            /**< Mask for USB_DAINTMSK outputs */
 #define USB_DAINTMSK_INEPMSK0                      (0x1UL << 0)                            /**< IN Endpoint 0 Interrupt mask Bit */
 #define _USB_DAINTMSK_INEPMSK0_SHIFT               0                                       /**< Shift value for USB_INEPMSK0 */
 #define _USB_DAINTMSK_INEPMSK0_MASK                0x1UL                                   /**< Bit mask for USB_INEPMSK0 */
@@ -4650,26 +4652,26 @@ static inline void efm32hg_revno(struct efm32hg_rev *rev)
 
 #define CORTEX_NUM_VECTORS 24
 
-#define DMA_Handler Vector40
-#define GPIO_EVEN_Handler Vector44
-#define TIMER0_Handler Vector48
-#define ACMP0_Handler Vector4C
-#define ADC0_Handler Vector50
-#define I2C0_Handler Vector54
-#define GPIO_ODD_Handler Vector58
-#define TIMER1_Handler Vector5C
-#define USART1_RX_Handler Vector60
-#define USART1_TX_Handler Vector64
-#define LEUART0_Handler Vector68
-#define PCNT0_Handler Vector6C
-#define RTC_Handler Vector70
-#define CMU_Handler Vector74
-#define VCMP_Handler Vector78
-#define MSC_Handler Vector7C
-#define AES_Handler Vector80
-#define USART0_RX_Handler Vector84
-#define USART0_TX_Handler Vector88
-#define USB_Handler Vector8C
-#define TIMER2_Handler Vector90
+#define DMA_Handler       Vector40 // 0
+#define GPIO_EVEN_Handler Vector44 // 1
+#define TIMER0_Handler    Vector48 // 2
+#define ACMP0_Handler     Vector4C // 3
+#define ADC0_Handler      Vector50 // 4
+#define I2C0_Handler      Vector54 // 5
+#define GPIO_ODD_Handler  Vector58 // 6
+#define TIMER1_Handler    Vector5C // 7
+#define USART1_RX_Handler Vector60 // 8
+#define USART1_TX_Handler Vector64 // 9
+#define LEUART0_Handler   Vector68 // 10
+#define PCNT0_Handler     Vector6C // 11
+#define RTC_Handler       Vector70 // 12
+#define CMU_Handler       Vector74 // 13
+#define VCMP_Handler      Vector78 // 14
+#define MSC_Handler       Vector7C // 15
+#define AES_Handler       Vector80 // 16
+#define USART0_RX_Handler Vector84 // 17
+#define USART0_TX_Handler Vector88 // 18
+#define USB_Handler       Vector8C // 19
+#define TIMER2_Handler    Vector90 // 20
 
 #endif /* MCU_H */

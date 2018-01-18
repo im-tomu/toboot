@@ -72,7 +72,7 @@ void dfu_init();
 uint8_t dfu_getstate();
 
 // USB entry points. True on success, false for stall.
-bool dfu_getstatus(uint8_t *status);
+bool dfu_getstatus(uint8_t status[8]);
 bool dfu_clrstatus();
 bool dfu_abort();
 bool dfu_download(unsigned blockNum, unsigned blockLength,

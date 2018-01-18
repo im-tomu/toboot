@@ -38,7 +38,7 @@ static dfu_state_t dfu_state = dfuIDLE;
 static dfu_status_t dfu_status = OK;
 static unsigned dfu_poll_timeout = 1;
 
-static uint8_t dfu_buffer[DFU_TRANSFER_SIZE];
+static uint32_t dfu_buffer[DFU_TRANSFER_SIZE/4];
 static uint32_t dfu_buffer_offset;
 static uint32_t block_num_words;
 
@@ -69,9 +69,6 @@ static void ftfl_busy_wait()
 
 static void ftfl_begin_erase_sector(uint32_t address)
 {
-    dfu_buffer_offset = 0;
-    dfu_target_address = address;
-
     // Erase the page at the specified address.
     MSC->WRITECTRL |= MSC_WRITECTRL_WREN;
 
@@ -79,18 +76,23 @@ static void ftfl_begin_erase_sector(uint32_t address)
     MSC->ADDRB = address;
     MSC->WRITECMD = MSC_WRITECMD_LADDRIM;
     MSC->WRITECMD = MSC_WRITECMD_ERASEPAGE;
-    ftfl_busy_wait();
-    MSC->WRITECTRL &= ~MSC_WRITECTRL_WREN;
 }
 
 static void ftfl_begin_program_section(uint32_t address, uint32_t numLWords)
 {
     // Write the buffer word to the currently selected address.
     // Note that after this is done, the address is incremented by 4.
-    MSC->ADDRB = address;
+    dfu_buffer_offset = 0;
+    dfu_target_address = address;
     block_num_words = numLWords;
+
+ftfl_busy_wait();
+    MSC->ADDRB = address;
+ftfl_busy_wait();
+    MSC->WRITECTRL |= MSC_WRITECTRL_WREN;
+
     MSC->WDATA = dfu_buffer[dfu_buffer_offset++];
-    MSC->WRITECMD = MSC_WRITECMD_WRITEONCE | MSC_WRITECMD_LADDRIM;
+    MSC->WRITECMD = MSC_WRITECMD_WRITEONCE;
 }
 
 static uint32_t address_for_block(unsigned blockNum)
@@ -98,7 +100,7 @@ static uint32_t address_for_block(unsigned blockNum)
     return 0x2000 + (blockNum << 10);
 }
 
-void dfu_init()
+void dfu_init(void)
 {
     CMU->OSCENCMD = CMU_OSCENCMD_AUXHFRCOEN;
     while (!(CMU->STATUS & CMU_STATUS_AUXHFRCORDY))
@@ -110,9 +112,10 @@ void dfu_init()
     // Enable writing to flash
     MSC->WRITECTRL |= MSC_WRITECTRL_WREN;
     MSC->IEN |= MSC_IEN_WRITE | MSC_IEN_ERASE;
+    NVIC_EnableIRQ(MSC_IRQn);
 }
 
-uint8_t dfu_getstate()
+uint8_t dfu_getstate(void)
 {
     return dfu_state;
 }
@@ -130,7 +133,7 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
     }
 
     // Store more data...
-    memcpy(dfu_buffer + packetOffset, data, packetLength);
+    memcpy(((uint8_t *)dfu_buffer) + packetOffset, data, packetLength);
 
     if (packetOffset + packetLength != blockLength) {
         // Still waiting for more data.
@@ -183,10 +186,6 @@ static bool fl_handle_status(uint8_t fstat, unsigned specificError)
         return true;
     }
 
-    if (block_num_words) {
-        return true;
-    }
-
     if (fstat & (MSC_STATUS_ERASEABORTED | MSC_STATUS_WORDTIMEOUT)) {
         // Bus collision. We did something wrong internally.
         dfu_state = dfuERROR;
@@ -203,20 +202,15 @@ static bool fl_handle_status(uint8_t fstat, unsigned specificError)
         return true;
     }
 
-    /*
-    if (fstat & FTFL_FSTAT_MGSTAT0) {
-        // Command-specifid error
-        dfu_state = dfuERROR;
-        dfu_status = specificError;
-        fl_state = flsIDLE;
+    if (fl_state == flsPROGRAMMING) {
+        // Still programming...
         return true;
     }
-    */
 
     return false;
 }
 
-static void fl_state_poll()
+static void fl_state_poll(void)
 {
     // Try to advance the state of our own flash programming state machine.
 
@@ -244,7 +238,7 @@ static void fl_state_poll()
     }
 }
 
-bool dfu_getstatus(uint8_t *status)
+bool dfu_getstatus(uint8_t status[8])
 {
     switch (dfu_state) {
 
@@ -283,7 +277,7 @@ bool dfu_getstatus(uint8_t *status)
     return true;
 }
 
-bool dfu_clrstatus()
+bool dfu_clrstatus(void)
 {
     switch (dfu_state) {
 
@@ -301,35 +295,46 @@ bool dfu_clrstatus()
     }
 }
 
-bool dfu_abort()
+bool dfu_abort(void)
 {
     dfu_state = dfuIDLE;
     dfu_status = OK;
     return true;
 }
 
+int msc_irq_reason;
+int msc_irq_count;
 void MSC_Handler(void) {
-    int irq_reason = MSC->IF;
+    msc_irq_reason = MSC->IF;
+    msc_irq_count++;
 
     // ERASE interrupt will happen once an erase has completed,
     // and we need to start writing words.
-    /*
-    if (irq_reason | MSC_IF_ERASE) {
+    if (msc_irq_reason | MSC_IF_ERASE) {
         // Set target address to the desired target address,
         // since the address was cleared after the erase finished.
-        MSC->ADDRB = dfu_target_address;
-        MSC->WRITECMD = MSC_WRITECMD_LADDRIM;
+ftfl_busy_wait();
+        //MSC->ADDRB = dfu_target_address;
+        //MSC->WRITECMD = MSC_WRITECMD_LADDRIM;
+ftfl_busy_wait();
 
         // Write the buffer word to the currently selected address.
         // Note that after this is done, the address is incremented by 4.
     }
-    */
-    if (irq_reason | MSC_IF_WRITE) {
+
+    if (msc_irq_reason | MSC_IF_WRITE) {
         // Write the buffer word to the currently selected address.
         // Note that after this is done, the address is incremented by 4.
-        if (block_num_words--) {
+        if (--block_num_words) {
+            dfu_target_address += 4;
+ftfl_busy_wait();
+            MSC->ADDRB = dfu_target_address;
+ftfl_busy_wait();
             MSC->WDATA = dfu_buffer[dfu_buffer_offset++]; 
-            MSC->WRITECMD = MSC_WRITECMD_WRITEONCE | MSC_WRITECMD_WRITEONCE;
+            MSC->WRITECMD = MSC_WRITECMD_WRITEONCE;
+        }
+        else {
+            fl_state = flsIDLE;
         }
     }
 

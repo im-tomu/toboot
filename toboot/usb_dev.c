@@ -274,10 +274,6 @@ efm32hg_ep_out_is_disabled(uint8_t n)
 }
 */
 
-uint32_t lens[32] = {9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9};
-uint32_t pktsizes[32] =  {9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9};
-uint8_t len_pos = 0;
-
 static void handle_datastage_out(struct usb_dev *dev)
 {
     struct ctrl_data *data_p = &dev->ctrl_data;
@@ -288,10 +284,6 @@ static void handle_datastage_out(struct usb_dev *dev)
     data_p->addr += len;
 
     len = data_p->len < pktsize ? data_p->len : pktsize;
-    pktsizes[len_pos] = pktsize;
-    lens[len_pos++] = len;
-    if (len_pos > 32)
-        len_pos = 0;
 
     if (data_p->len == 0)
     {
@@ -478,11 +470,10 @@ static void handle_out0(struct usb_dev *dev)
        * Or else, unexpected state.
        * STALL the endpoint, until we receive the next SETUP token.
        */
-        dev->state = STALLED;
-        efm32hg_ep_out_stall(ENDP0);
-        efm32hg_ep_in_stall(ENDP0);
-        dev->state = WAIT_SETUP;
-        efm32hg_prepare_ep0_setup(dev);
+        if (last_setup.wRequestAndType == 0x0121)
+            usb_lld_ctrl_ack(dev);
+        else
+            usb_lld_ctrl_error(dev);
     }
 }
 
@@ -688,6 +679,7 @@ static void handle_in0(struct usb_dev *dev)
     }
     else
     {
+        asm("bkpt #64");
         dev->state = STALLED;
         efm32hg_ep_out_stall(ENDP0);
         efm32hg_ep_in_stall(ENDP0);
@@ -719,7 +711,7 @@ void USB_Handler(void)
 
     if (intsts & USB_GINTSTS_IEPINT)
     {
-        uint32_t epint = USB->DAINT & USB->DAINTMSK;
+        uint32_t epint = (USB->DAINT & USB->DAINTMSK) & _USB_DAINTMSK_INEPMSK_MASK;
 
         ep = 0;
         while (epint != 0)
@@ -736,13 +728,7 @@ void USB_Handler(void)
                     {
                         // Unsupported in this bootloader.
                         asm("bkpt #99");
-                        //                    else
-                        //                    {
-                        //                        len = USB_DINEPS[ep].TSIZ & 0x7FFFFUL; /* XFERSIZE */
-                        //                        if (USB_DINEPS[ep].INT & USB_DIEP_INT_NAKINTRPT)
-                        //                            USB_DINEPS[ep].INT = USB_DIEP_INT_NAKINTRPT;
-                        //                        return USB_MAKE_TXRX(ep, 1, len);
-                        //    return;
+                        return;
                     }
                 }
             }
@@ -753,7 +739,7 @@ void USB_Handler(void)
 
     if (intsts & USB_GINTSTS_OEPINT)
     {
-        uint32_t epint = (USB->DAINT & USB->DAINTMSK) >> 16;
+        uint32_t epint = ((USB->DAINT & USB->DAINTMSK) & _USB_DAINTMSK_OUTEPMSK_MASK) >> 16;
 
         ep = 0;
         while (epint != 0)
