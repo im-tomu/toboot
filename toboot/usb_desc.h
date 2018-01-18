@@ -48,22 +48,6 @@ struct device_req {
     uint16_t wLength;
 };
 
-struct ctrl_data {
-  uint8_t *addr;
-  uint16_t len;
-  uint8_t require_zlp;
-};
-
-struct usb_dev
-{
-    uint8_t configuration;
-    uint8_t feature;
-    uint8_t state;
-    struct device_req dev_req;
-    struct ctrl_data ctrl_data;
-};
-extern struct usb_dev *dev;
-
 #define NUM_USB_BUFFERS           8
 #define VENDOR_ID                 0x1d50    // OpenMoko
 #define PRODUCT_ID                0x6082    // Assigned to Fadecandy project for DFU Bootloader

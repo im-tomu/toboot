@@ -61,6 +61,19 @@ enum CONTROL_STATE
     STALLED,
 };
 
+struct ctrl_data {
+    uint8_t *addr;
+    uint16_t len;
+    uint8_t require_zlp;
+};
+
+struct usb_dev
+{
+    struct device_req dev_req;
+    struct ctrl_data ctrl_data;
+    enum CONTROL_STATE state;
+};
+
 static struct usb_dev default_dev;
 static struct device_req last_setup;
 struct usb_dev *dev = &default_dev;
