@@ -440,7 +440,7 @@ static void handle_out0(struct usb_dev *dev)
                                  last_setup.wLength, // blockLength
                                  ep0_rx_offset,      // packetOffset
                                  size,               // packetLength
-                                 dev->ctrl_data.addr))
+                                 rx_buffer))
                 {
                     ep0_rx_offset += size;
                     if (ep0_rx_offset >= last_setup.wLength)

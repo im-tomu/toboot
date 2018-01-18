@@ -44,8 +44,6 @@ static void start_rtc(void)
 
 void __early_init(void)
 {
-    //void (*function)(void) = 0x2004;
-    //function();
     // Enable peripheral clocks.
     CMU->HFPERCLKDIV = CMU_HFPERCLKDIV_HFPERCLKEN;
     CMU->HFPERCLKEN0 = CMU_HFPERCLKEN0_GPIO | BOOTLOADER_USART_CLOCKEN | AUTOBAUD_TIMER_CLOCK;
@@ -63,7 +61,6 @@ void __early_init(void)
 
     // Calibrate USB based on communications
     CMU->USHFRCOCONF = CMU_USHFRCOCONF_BAND_48MHZ;
-    //CMU_ClockSelectSet( cmuClock_USBC, cmuSelect_USHFRCO );
 
     // Enable USHFRCO Clock Recovery mode.
     CMU->USBCRCTRL |= CMU_USBCRCTRL_EN;
@@ -83,7 +80,6 @@ void __early_init(void)
         ;
 
     // Mux things
-
     // Mux PA0 (Green LED)
     GPIO->P[0].MODEL &= ~_GPIO_P_MODEL_MODE0_MASK;
     GPIO->P[0].MODEL |= GPIO_P_MODEL_MODE0_WIREDAND;
@@ -93,6 +89,16 @@ void __early_init(void)
     GPIO->P[1].MODEL &= ~_GPIO_P_MODEL_MODE7_MASK;
     GPIO->P[1].MODEL |= GPIO_P_MODEL_MODE7_WIREDAND;
     GPIO->P[1].DOUTCLR = (1 << 7);
+
+    // Set up the watchdog to reboot us after 15 ms.
+    WDOG->CTRL |= WDOG_CTRL_EN;
+    while (WDOG->SYNCBUSY & _WDOG_SYNCBUSY_MASK)
+        ;
+
+    // A value of 0 causes a reboot in 9 ticks.  The ticks
+    // are at 1 kHz intervals, so this will reset the system
+    // in about 9 seconds.
+    WDOG->CTRL = WDOG_CTRL_CLKSEL_ULFRCO | WDOG_CTRL_EN | (3 << _WDOG_CTRL_PERSEL_SHIFT);
 
     start_rtc();
 }
@@ -118,6 +124,7 @@ static int should_enter_bootloader(void)
     {
         boot_token.magic = 0;
         boot_token.boot_count = 0;
+        boot_token.board_model = 0x23;
     }
     // Reset the "RSTCAUSE" value (EFM32HG-RM 9.3.1)
     RMU->CMD |= RMU_CMD_RCCLR;
@@ -140,7 +147,7 @@ static int should_enter_bootloader(void)
     }
 
     // If we've failed to boot many times, enter the bootloader
-    if (boot_token.boot_count > 3)
+    if (boot_token.boot_count >= 3)
     {
         bootloader_reason = BOOT_FAILED_TOO_MANY_TIMES;
         return 1;
@@ -161,6 +168,19 @@ static int should_enter_bootloader(void)
 
 __attribute__((noreturn)) static void boot_app(void)
 {
+    // Relocate IVT to application flash
+    __disable_irq();
+    NVIC->ICER[0] = 0xFFFFFFFF;
+    SCB->VTOR = (uint32_t)&appVectors[0];
+
+    // Disable USB
+    USB->GAHBCFG = _USB_GAHBCFG_RESETVALUE;
+    USB->GINTMSK = _USB_GINTMSK_RESETVALUE;
+    USB->DAINTMSK = _USB_DAINTMSK_RESETVALUE;
+    USB->DOEPMSK = _USB_DOEPMSK_RESETVALUE;
+    USB->DIEPMSK = _USB_DIEPMSK_RESETVALUE;
+    USB->CTRL = _USB_CTRL_RESETVALUE;
+
     // Reset RTC settings.
     RTC->IEN = _RTC_IEN_RESETVALUE;
     RTC->COMP0 = _RTC_COMP0_RESETVALUE;
@@ -171,22 +191,23 @@ __attribute__((noreturn)) static void boot_app(void)
         ;
     while (CMU->SYNCBUSY & CMU_SYNCBUSY_LFACLKEN0)
         ;
-
     // Switch to default cpu clock.
     CMU->CMD = CMU_CMD_HFCLKSEL_HFRCO;
-    CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS | CMU_OSCENCMD_LFRCODIS | CMU_OSCENCMD_AUXHFRCODIS;
+    CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS
+                  | CMU_OSCENCMD_AUXHFRCODIS
+                  | CMU_OSCENCMD_LFRCODIS
+                  | CMU_OSCENCMD_USHFRCODIS;
+    CMU->USBCRCTRL = _CMU_USBCRCTRL_RESETVALUE;
 
     // Reset clock registers used
-    CMU->HFCORECLKEN0 = _CMU_HFCORECLKEN0_RESETVALUE;
+//    CMU->HFCORECLKEN0 = _CMU_HFCORECLKEN0_RESETVALUE;
     CMU->HFPERCLKDIV = _CMU_HFPERCLKDIV_RESETVALUE;
     CMU->HFPERCLKEN0 = _CMU_HFPERCLKEN0_RESETVALUE;
     CMU->LFCLKSEL = _CMU_LFCLKSEL_RESETVALUE;
     CMU->LFACLKEN0 = _CMU_LFACLKEN0_RESETVALUE;
 
-    // Relocate IVT to application flash
-    __disable_irq();
-    NVIC->ICER[0] = 0xFFFFFFFF;
-    SCB->VTOR = (uint32_t)&appVectors[0];
+    GPIO->P[0].MODEL = _GPIO_P_MODEL_RESETVALUE;
+    GPIO->P[1].MODEL = _GPIO_P_MODEL_RESETVALUE;
 
     // Refresh watchdog right before launching app
     watchdog_refresh();
@@ -194,6 +215,8 @@ __attribute__((noreturn)) static void boot_app(void)
     // Clear the boot token, so we don't repeatedly enter DFU mode.
     boot_token.magic = 0;
     boot_token.boot_count++;
+
+    __enable_irq();
 
     asm volatile(
         "mov lr, %0 \n\t"

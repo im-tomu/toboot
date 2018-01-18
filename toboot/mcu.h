@@ -4608,18 +4608,12 @@ static inline void NVIC_DisableIRQ(IRQn_Type IRQn)
     NVIC->ICER[0] = (1 << ((uint32_t)(IRQn) & 0x1F));
 }
 
+/** \brief  Reset the watchdog
+    Reset the watchdog timer to prevent the system from rebooting for another while.
+ */
 static inline void watchdog_refresh(void)
 {
-    // Disable the watchdog timer prior to resetting it
-    WDOG->CTRL &= ~WDOG_CTRL_EN;
-    while (WDOG->SYNCBUSY & WDOG_SYNCBUSY_CTRL);
-
-    // Enable the watchdog timer, which will cause it to reset the
-    // system if the application doesn't clear it within two seconds.
-    WDOG->CTRL = WDOG_CTRL_CLKSEL_ULFRCO
-               // Reset after 2k ticks of the 1 kHz clocks.
-               | (8 << _WDOG_CTRL_PERSEL_SHIFT)
-               | WDOG_CTRL_EN;
+    WDOG->CMD = WDOG_CMD_CLEAR;
 }
 
 struct efm32hg_rev
