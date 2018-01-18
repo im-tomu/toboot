@@ -40,7 +40,7 @@
 #define STANDARD_ENDPOINT_DESC_SIZE 0x09
 #define USB_MAX_PACKET_SIZE 64 /* For FS device */
 
-volatile uint8_t usb_configuration = 0;
+static uint8_t usb_configuration = 0;
 
 void *memcpy(void *dst, const void *src, size_t cnt);
 static uint32_t ep0_rx_offset;
