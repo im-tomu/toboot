@@ -83,22 +83,6 @@ void efm32hg_core_reset(void)
     }
 }
 
-static void efm32hg_flush_rx_fifo(void)
-{
-    USB->GRSTCTL = USB_GRSTCTL_RXFFLSH;
-    while (USB->GRSTCTL & USB_GRSTCTL_RXFFLSH)
-    {
-    }
-}
-
-static void efm32hg_flush_tx_fifo(uint8_t n)
-{
-    USB->GRSTCTL = USB_GRSTCTL_TXFFLSH | (n << 6);
-    while (USB->GRSTCTL & USB_GRSTCTL_TXFFLSH)
-    {
-    }
-}
-
 static void efm32hg_enable_ints(void)
 {
     /* Disable all interrupts. */
@@ -120,10 +104,8 @@ static void efm32hg_set_daddr(uint8_t daddr)
     USB->DCFG = (USB->DCFG & ~_USB_DCFG_DEVADDR_MASK) | (daddr << 4);
 }
 
-static void
-efm32hg_prepare_ep0_setup(struct usb_dev *dev)
+static void efm32hg_prepare_ep0_setup(void)
 {
-    (void)dev;
     USB->DOEP0TSIZ = (8 * 3 << 0) /* XFERSIZE */
                      | (1 << 19)  /* PKTCNT */
                      | (3 << 29); /* SUPCNT */
@@ -131,8 +113,7 @@ efm32hg_prepare_ep0_setup(struct usb_dev *dev)
     USB->DOEP0CTL = (USB->DOEP0CTL & ~DEPCTL_WO_BITMASK) | USB_DOEP0CTL_EPENA;
 }
 
-static void
-efm32hg_prepare_ep0_out(const void *buf, size_t len)
+static void efm32hg_prepare_ep0_out(const void *buf, size_t len)
 {
     USB->DOEP0DMAADDR = (uint32_t)buf;
     USB->DOEP0TSIZ = (len << 0)   /* XFERSIZE */
@@ -140,8 +121,7 @@ efm32hg_prepare_ep0_out(const void *buf, size_t len)
     USB->DOEP0CTL = (USB->DOEP0CTL & ~DEPCTL_WO_BITMASK) | USB_DOEP0CTL_CNAK | USB_DOEP0CTL_EPENA;
 }
 
-static void
-efm32hg_prepare_ep0_in(const void *buf, size_t len)
+static void efm32hg_prepare_ep0_in(const void *buf, size_t len)
 {
     USB->DIEP0DMAADDR = (uint32_t)buf;
     USB->DIEP0TSIZ = (len << 0)   /* XFERSIZE */
@@ -197,7 +177,7 @@ static void
 handle_datastage_in(struct usb_dev *dev)
 {
     struct ctrl_data *data_p = &dev->ctrl_data;
-    uint32_t len = 64 >> (USB->DOEP0CTL & 0x3UL);
+    uint32_t len = 64;
 
     if ((data_p->len == 0) && (dev->state == LAST_IN_DATA))
     {
@@ -205,7 +185,7 @@ handle_datastage_in(struct usb_dev *dev)
         {
             data_p->require_zlp = 0;
 
-            efm32hg_prepare_ep0_setup(dev);
+            efm32hg_prepare_ep0_setup();
             /* No more data to send.  Send empty packet */
             efm32hg_prepare_ep0_in(NULL, 0);
         }
@@ -224,7 +204,7 @@ handle_datastage_in(struct usb_dev *dev)
     if (len > data_p->len)
         len = data_p->len;
 
-    efm32hg_prepare_ep0_setup(dev);
+    efm32hg_prepare_ep0_setup();
     efm32hg_prepare_ep0_in(data_p->addr, len);
     data_p->len -= len;
     data_p->addr += len;
@@ -246,7 +226,7 @@ void usb_lld_ctrl_recv(struct usb_dev *dev, void *p, size_t len)
 void usb_lld_ctrl_ack(struct usb_dev *dev)
 {
     /* Zero length packet for ACK.  */
-    efm32hg_prepare_ep0_setup(dev);
+    efm32hg_prepare_ep0_setup();
     dev->state = WAIT_STATUS_IN;
     efm32hg_prepare_ep0_in(NULL, 0);
 }
@@ -298,11 +278,10 @@ void usb_lld_ctrl_send(struct usb_dev *dev, const void *buf, size_t buflen)
 
 void usb_lld_ctrl_error(struct usb_dev *dev)
 {
-    dev->state = STALLED;
     efm32hg_ep0_out_stall();
     efm32hg_ep0_in_stall();
     dev->state = WAIT_SETUP;
-    efm32hg_prepare_ep0_setup(dev);
+    efm32hg_prepare_ep0_setup();
 }
 
 static void handle_out0(struct usb_dev *dev)
@@ -346,7 +325,7 @@ static void handle_out0(struct usb_dev *dev)
     }
     else if (dev->state == WAIT_STATUS_OUT)
     { /* Control READ transfer done successfully.  */
-        efm32hg_prepare_ep0_setup(dev);
+        efm32hg_prepare_ep0_setup();
         ep0_rx_offset = 0;
         dev->state = WAIT_SETUP;
     }
@@ -567,7 +546,7 @@ static void handle_in0(struct usb_dev *dev)
     }
     else if (dev->state == WAIT_STATUS_IN)
     { /* Control WRITE transfer done successfully.  */
-        efm32hg_prepare_ep0_setup(dev);
+        efm32hg_prepare_ep0_setup();
         dev->state = WAIT_SETUP;
     }
     else
@@ -596,7 +575,7 @@ void USB_Handler(void)
     if (intsts & USB_GINTSTS_ENUMDONE)
     {
         USB->GINTSTS = USB_GINTSTS_ENUMDONE;
-        efm32hg_prepare_ep0_setup(dev);
+        efm32hg_prepare_ep0_setup();
         efm32hg_enable_ints();
         dev->state = WAIT_SETUP;
     }
@@ -701,26 +680,7 @@ static int usb_core_init(void)
     address = total_rx_fifo_size;
     depth = ep_tx_fifo_size;
     USB->GNPTXFSIZ = (depth << 16 /*NPTXFINEPTXF0DEP*/) | address /*NPTXFSTADDR*/;
-#if 0
-    /* Flush the FIFO's */
-    efm32hg_flush_tx_fifo(0x10); /* All Tx FIFO's */
-    efm32hg_flush_rx_fifo();     /* The Rx FIFO   */
 
-    /* Disable all device interrupts */
-    USB->DIEPMSK = 0;
-    USB->DOEPMSK = 0;
-    USB->DAINTMSK = 0;
-    USB->DIEPEMPMSK = 0;
-
-    /* Disable all EP's, clear all EP ints. */
-    USB_DINEPS[0].CTL = 0;
-    USB_DINEPS[0].TSIZ = 0;
-    USB_DINEPS[0].INT = 0xFFFFFFFF;
-
-    USB_DOUTEPS[0].CTL = 0;
-    USB_DOUTEPS[0].TSIZ = 0;
-    USB_DOUTEPS[0].INT = 0xFFFFFFFF;
-#endif
     efm32hg_connect();
 
     return 0;
