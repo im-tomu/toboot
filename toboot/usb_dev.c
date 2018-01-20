@@ -426,6 +426,7 @@ static void usb_setup(struct usb_dev *dev)
         }
         usb_lld_ctrl_error(dev);
         return;
+
     case 0x0121: // DFU_DNLOAD
         if (dev->dev_req.wIndex > 0)
         {
@@ -467,6 +468,7 @@ static void usb_setup(struct usb_dev *dev)
             return;
         }
         break;
+
     case 0x0421: // DFU_CLRSTATUS
         if (dev->dev_req.wIndex > 0)
         {
@@ -536,14 +538,7 @@ static void handle_in0(struct usb_dev *dev)
     }
     else
     {
-        #if 0
-        asm("bkpt #64");
-        dev->state = STALLED;
-        efm32hg_ep0_out_stall();
-        efm32hg_ep0_in_stall();
-        dev->state = WAIT_SETUP;
-        efm32hg_prepare_ep0_setup(dev);
-        #endif
+        /* ERROR */
     }
 }
 
@@ -577,20 +572,19 @@ void USB_Handler(void)
 
     if (intsts & USB_GINTSTS_OEPINT)
     {
-        uint32_t sts = USB_DOUTEPS[0].INT & USB->DOEPMSK;
+        uint32_t sts = USB->DOEP0INT & USB->DOEPMSK;
 
         if (sts & USB_DOEP0INT_STUPPKTRCVD)
         {
-            USB_DOUTEPS[0].INT = USB_DOEP0INT_STUPPKTRCVD;
+            USB->DOEP0INT = USB_DOEP0INT_STUPPKTRCVD;
             sts &= ~USB_DOEP_INT_XFERCOMPL;
         }
 
         if (sts & USB_DOEP_INT_XFERCOMPL)
         {
-            USB_DOUTEPS[0].INT = USB_DOEP_INT_XFERCOMPL;
-            sts = USB->DOEP0INT & USB->DOEPMSK;
+            USB->DOEP0INT = USB_DOEP_INT_XFERCOMPL;
 
-            USB_DOUTEPS[0].INT = USB_DOEP0INT_STUPPKTRCVD;
+            USB->DOEP0INT = USB_DOEP0INT_STUPPKTRCVD;
 
             if (sts & USB_DOEP0INT_SETUP)
             {
@@ -716,8 +710,7 @@ void usb_init(void)
 
     /* Unmask interrupts for TX and RX */
     USB->GAHBCFG |= USB_GAHBCFG_GLBLINTRMSK;
-    USB->GINTMSK = /*USB_GINTMSK_USBSUSPMSK
-                 |*/ USB_GINTMSK_USBRSTMSK |
+    USB->GINTMSK = USB_GINTMSK_USBRSTMSK |
                    USB_GINTMSK_ENUMDONEMSK | USB_GINTMSK_IEPINTMSK | USB_GINTMSK_OEPINTMSK
         /*| USB_GINTMSK_WKUPINTMSK*/;
     USB->DAINTMSK = USB_DAINTMSK_INEPMSK0 | USB_DAINTMSK_OUTEPMSK0;
