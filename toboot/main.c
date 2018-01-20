@@ -18,6 +18,9 @@ void RTC_Handler(void)
 
     // Toggle the green LED
     GPIO->P[0].DOUTTGL = (1 << 0);
+
+    // Also toggle the red LED, to make a pattern of flashing lights.
+    GPIO->P[1].DOUTTGL = (1 << 7);
 }
 
 /**************************************************************************/ /**
