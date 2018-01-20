@@ -128,9 +128,16 @@ static void busy_wait(int count) {
 int test_pin_short(void)
 {
     int samples[4];
+    extern uint32_t __app_start__;
+
     // If the outer pins on the edge connector are shorted, enter the bootloader.
     // We want to test CAP1A (PC1) and CAP0B (PE12).
 
+    // If the bottom four bits of 0x2094 are 70b0, don't allow
+    // us to enter the bootloader this way.  This is a security lockout.
+    if (((*((uint32_t *)(((uint32_t)&__app_start__) + 0x94))) & 0xffff) == 0x70b0) {
+        return 0;
+    }
 
     // Mux PC1 (Outer edge pad)
     GPIO->P[2].MODEL &= ~_GPIO_P_MODEL_MODE1_MASK;
