@@ -52,6 +52,8 @@ $(TARGET): $(OBJECTS) $(LDSCRIPT)
 	$(QUIET) $(CXX) $(OBJECTS) $(LFLAGS) -o $@
 	$(QUIET) echo "  OBJCOPY  $(PACKAGE).bin"
 	$(QUIET) $(OBJCOPY) -O binary $@ $(PACKAGE).bin
+	$(QUIET) echo "  IHEX     $(PACKAGE).ihex"
+	$(QUIET) $(OBJCOPY) -O ihex $@ $(PACKAGE).ihex
 
 $(DEBUG): CFLAGS += $(DBG_CFLAGS)
 $(DEBUG): LFLAGS += $(DBG_LFLAGS)
