@@ -554,6 +554,7 @@ void USB_Handler(void)
     if (intsts & USB_GINTSTS_USBRST)
     {
         USB->GINTSTS = USB_GINTSTS_USBRST;
+        efm32hg_set_daddr(0);
         return;
     }
 
