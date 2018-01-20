@@ -263,6 +263,12 @@ bool dfu_getstatus(uint8_t status[8])
             // Ready to reboot. The main thread will take care of this. Also let the DFU tool
             // know to leave us alone until this happens.
             dfu_state = dfuMANIFEST;
+            dfu_poll_timeout = 10;
+            break;
+
+        case dfuMANIFEST:
+            // Perform the reboot
+            dfu_state = dfuMANIFEST_WAIT_RESET;
             dfu_poll_timeout = 1000;
             break;
 
