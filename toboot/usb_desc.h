@@ -49,8 +49,8 @@ struct device_req {
 };
 
 #define NUM_USB_BUFFERS           8
-#define VENDOR_ID                 0x1d50    // OpenMoko
-#define PRODUCT_ID                0x6082    // Assigned to Fadecandy project for DFU Bootloader
+#define VENDOR_ID                 0x1209    // pid.codes
+#define PRODUCT_ID                0x70b1    // Assigned to Tomu project
 #define DEVICE_VER                0x0101    // Bootloader version
 #define MANUFACTURER_NAME         {'x','o', 'b', 's'}
 #define MANUFACTURER_NAME_LEN     4
