@@ -115,6 +115,54 @@ static int test_boot_token(void)
     return boot_token.magic == BOOTLOADER_ENTER_TOKEN;
 }
 
+static void busy_wait(int count) {
+    return;
+    int i;
+    for (i = 0; i < count+2000; i++)
+        asm("nop");
+}
+
+#define READ_CAP0B()   (GPIO->P[4].DIN & (1 << 12))
+#define TOGGLE_CAP1A() (GPIO->P[2].DOUTTGL = (1 << 1))
+
+int test_pin_short(void)
+{
+    int samples[4];
+    // If the outer pins on the edge connector are shorted, enter the bootloader.
+    // We want to test CAP1A (PC1) and CAP0B (PE12).
+
+
+    // Mux PC1 (Outer edge pad)
+    GPIO->P[2].MODEL &= ~_GPIO_P_MODEL_MODE1_MASK;
+    GPIO->P[2].MODEL |= GPIO_P_MODEL_MODE1_PUSHPULL;
+
+    // Mux PE12 (Outer edge pad)
+    GPIO->P[4].MODEH &= ~_GPIO_P_MODEH_MODE12_MASK;
+    GPIO->P[4].MODEH |= GPIO_P_MODEH_MODE12_INPUTPULL;
+    busy_wait(20);
+
+    GPIO->P[2].DOUTSET = (1 << 1);
+    busy_wait(15);
+    samples[0] = READ_CAP0B();
+
+    TOGGLE_CAP1A();
+    busy_wait(15);
+    samples[1] = READ_CAP0B();
+
+    TOGGLE_CAP1A();
+    busy_wait(15);
+    samples[2] = READ_CAP0B();
+
+    TOGGLE_CAP1A();
+    busy_wait(15);
+    samples[3] = READ_CAP0B();
+
+    if (samples[0] && (!samples[1]) && samples[2] && (!samples[3]))
+        return 1;
+
+    return 0;
+}
+
 static int should_enter_bootloader(void)
 {
     extern uint32_t __ram_start__;
@@ -141,9 +189,8 @@ static int should_enter_bootloader(void)
         return 1;
     }
 
-// If the user is holding the button down
-#pragma warn "Check for button press here"
-    if (0)
+    // If the user is holding the button down
+    if (test_pin_short())
     {
         bootloader_reason = BUTTON_HELD_DOWN;
         return 1;
