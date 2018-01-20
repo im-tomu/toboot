@@ -45,6 +45,11 @@ static uint32_t fl_num_words;
 // Memory offset we're uploading to.
 static uint32_t dfu_target_address;
 
+static void set_state(dfu_state_t new_state, dfu_status_t new_status) {
+    dfu_state = new_state;
+    dfu_status = new_status;
+}
+
 bool fl_is_idle(void) {
     return fl_state == flsIDLE;
 }
@@ -68,7 +73,8 @@ static bool ftfl_busy()
 static void ftfl_busy_wait()
 {
     // Wait for the flash memory controller to finish any pending operation.
-    while (ftfl_busy());
+    while (ftfl_busy())
+        watchdog_refresh();
 }
 
 static void ftfl_begin_erase_sector(uint32_t address)
@@ -84,8 +90,6 @@ static void ftfl_begin_erase_sector(uint32_t address)
 
 static void ftfl_begin_program_section(uint32_t address)
 {
-//    if (address == 0x3c00)
-//        asm("bkpt #23");
     // Write the buffer word to the currently selected address.
     // Note that after this is done, the address is incremented by 4.
     dfu_buffer_offset = 0;
@@ -93,8 +97,6 @@ static void ftfl_begin_program_section(uint32_t address)
     fl_num_words--;
 ftfl_busy_wait();
     MSC->ADDRB = address;
-    if ((dfu_target_address & 0x3ff))
-        asm("bkpt #232");
 ftfl_busy_wait();
     MSC->WRITECTRL |= MSC_WRITECTRL_WREN;
     MSC->WDATA = dfu_buffer[dfu_buffer_offset++];
@@ -133,8 +135,7 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
         packetOffset + packetLength > blockLength) {
 
         // Overflow!
-        dfu_state = dfuERROR;
-        dfu_status = errADDRESS;
+        set_state(dfuERROR, errADDRESS);
         return false;
     }
 
@@ -148,23 +149,19 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
 
     if (dfu_state != dfuIDLE && dfu_state != dfuDNLOAD_IDLE) {
         // Wrong state! Oops.
-        dfu_state = dfuERROR;
-        dfu_status = errSTALLEDPKT;
+        set_state(dfuERROR, errSTALLEDPKT);
         return false;
     }
 
     if (ftfl_busy() || fl_state != flsIDLE) {
         // Flash controller shouldn't be busy now!
-        dfu_state = dfuERROR;
-        dfu_status = errUNKNOWN;
+        set_state(dfuERROR, errUNKNOWN);
         return false;       
     }
 
     if (!blockLength) {
         // End of download
-//        asm("bkpt #0");
-        dfu_state = dfuMANIFEST_SYNC;
-        dfu_status = OK;
+        set_state(dfuMANIFEST_SYNC, OK);
         return true;
     }
 
@@ -172,16 +169,13 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
     fl_state = flsERASING;
     fl_current_addr = address_for_block(blockNum);
     fl_num_words = blockLength / 4;
-//    if (fl_current_addr == 0x3c00)
-//        asm("bkpt #93");
     ftfl_begin_erase_sector(fl_current_addr);
 
-    dfu_state = dfuDNLOAD_SYNC;
-    dfu_status = OK;
+    set_state(dfuDNLOAD_SYNC, OK);
     return true;
 }
 
-static bool fl_handle_status(uint8_t fstat, unsigned specificError)
+static bool fl_handle_status(uint8_t fstat)
 {
     /*
      * Handle common errors from an FSTAT register value.
@@ -198,16 +192,14 @@ static bool fl_handle_status(uint8_t fstat, unsigned specificError)
 
     if (fstat & (MSC_STATUS_ERASEABORTED | MSC_STATUS_WORDTIMEOUT)) {
         // Bus collision. We did something wrong internally.
-        dfu_state = dfuERROR;
-        dfu_status = errUNKNOWN;
+        set_state(dfuERROR, errUNKNOWN);
         fl_state = flsIDLE;
         return true;
     }
 
     if (fstat & (MSC_STATUS_INVADDR | MSC_STATUS_LOCKED)) {
         // Address or protection error
-        dfu_state = dfuERROR;
-        dfu_status = errADDRESS;
+        set_state(dfuERROR, errADDRESS);
         fl_state = flsIDLE;
         return true;
     }
@@ -232,7 +224,7 @@ static void fl_state_poll(void)
             break;
 
         case flsERASING:
-            if (!fl_handle_status(fstat, errERASE)) {
+            if (!fl_handle_status(fstat)) {
                 // Done! Move on to programming the sector.
                 fl_state = flsPROGRAMMING;
                 ftfl_begin_program_section(fl_current_addr);
@@ -240,7 +232,7 @@ static void fl_state_poll(void)
             break;
 
         case flsPROGRAMMING:
-            if (!fl_handle_status(fstat, errVERIFY)) {
+            if (!fl_handle_status(fstat)) {
                 // Done!
                 fl_state = flsIDLE;
             }
@@ -293,39 +285,24 @@ bool dfu_clrstatus(void)
 
     case dfuERROR:
         // Clear an error
-        dfu_state = dfuIDLE;
-        dfu_status = OK;
+        set_state(dfuIDLE, OK);
         return true;
 
     default:
         // Unexpected request
-        dfu_state = dfuERROR;
-        dfu_status = errSTALLEDPKT;
+        set_state(dfuERROR, errSTALLEDPKT);
         return false;
     }
 }
 
 bool dfu_abort(void)
 {
-    dfu_state = dfuIDLE;
-    dfu_status = OK;
+    set_state(dfuIDLE, OK);
     return true;
 }
 
 void MSC_Handler(void) {
     uint32_t msc_irq_reason = MSC->IF;
-
-    // ERASE interrupt will happen once an erase has completed,
-    // and we need to start writing words.
-    if (msc_irq_reason & MSC_IF_ERASE) {
-        // Set target address to the desired target address,
-        // since the address was cleared after the erase finished.
-        //MSC->ADDRB = dfu_target_address;
-        //MSC->WRITECMD = MSC_WRITECMD_LADDRIM;
-
-        // Write the buffer word to the currently selected address.
-        // Note that after this is done, the address is incremented by 4.
-    }
 
     if (msc_irq_reason & MSC_IF_WRITE) {
         // Write the buffer word to the currently selected address.
@@ -333,11 +310,8 @@ void MSC_Handler(void) {
         if (fl_num_words > 0) {
             fl_num_words--;
             dfu_target_address += 4;
-ftfl_busy_wait();
-            if (!(dfu_target_address & 0x3ff))
-                asm("bkpt #231");
             MSC->ADDRB = dfu_target_address;
-ftfl_busy_wait();
+            ftfl_busy_wait();
             MSC->WDATA = dfu_buffer[dfu_buffer_offset++]; 
             MSC->WRITECMD = MSC_WRITECMD_WRITEONCE;
         }

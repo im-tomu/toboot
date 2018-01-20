@@ -10,17 +10,15 @@ void updater(void) {
     dfu_init();
     int i;
 
-    while (dfu_getstate() != dfuMANIFEST) {
+    while (dfu_getstate() != dfuMANIFEST)
         // Wait for firmware download
         watchdog_refresh();
-    }
 
     while (!fl_is_idle())
         watchdog_refresh();
 
-    // Refresh the watchdog and stop, waiting for the system to reboot.
-    watchdog_refresh();
     for (i = 0; i < 1075000; i++)
        watchdog_refresh();
+
     while(1);
 }

@@ -79,34 +79,6 @@ static struct device_req last_setup;
 struct usb_dev *dev = &default_dev;
 static uint8_t reply_buffer[8];
 
-void efm32hg_core_reset(void)
-{
-    USB->PCGCCTL &= ~USB_PCGCCTL_STOPPCLK;
-    USB->PCGCCTL &= ~(USB_PCGCCTL_PWRCLMP | USB_PCGCCTL_RSTPDWNMODULE);
-
-    /* Core Soft Reset */
-    USB->GRSTCTL |= USB_GRSTCTL_CSFTRST;
-    while (USB->GRSTCTL & USB_GRSTCTL_CSFTRST)
-    {
-    }
-
-    /* Wait for AHB master IDLE state. */
-    while (!(USB->GRSTCTL & USB_GRSTCTL_AHBIDLE))
-    {
-    }
-}
-
-static void efm32hg_enable_ints(void)
-{
-    /* Disable all interrupts. */
-    USB->GINTMSK = 0;
-
-    /* Clear pending interrupts */
-    USB->GINTSTS = 0xFFFFFFFF;
-
-    USB->GINTMSK = USB_GINTMSK_USBRSTMSK | USB_GINTMSK_ENUMDONEMSK | USB_GINTMSK_IEPINTMSK | USB_GINTMSK_OEPINTMSK;
-}
-
 static void efm32hg_connect(void)
 {
     USB->DCTL &= ~(DCTL_WO_BITMASK | USB_DCTL_SFTDISCON);
@@ -289,7 +261,7 @@ void usb_lld_ctrl_send(struct usb_dev *dev, const void *buf, size_t buflen)
     data_p->addr += len;
 }
 
-void usb_lld_ctrl_error(struct usb_dev *dev)
+static void usb_lld_ctrl_error(struct usb_dev *dev)
 {
     efm32hg_ep0_out_stall();
     efm32hg_ep0_in_stall();
@@ -589,7 +561,6 @@ void USB_Handler(void)
     {
         USB->GINTSTS = USB_GINTSTS_ENUMDONE;
         efm32hg_prepare_ep0_setup();
-        efm32hg_enable_ints();
         dev->state = WAIT_SETUP;
     }
 
