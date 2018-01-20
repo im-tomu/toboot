@@ -8,17 +8,14 @@ __attribute__((noreturn))
 void updater(void) {
     usb_init();
     dfu_init();
-    int i;
 
-    while (dfu_getstate() != dfuMANIFEST)
+    while (dfu_getstate() != dfuMANIFEST_WAIT_RESET)
         // Wait for firmware download
         watchdog_refresh();
 
     while (!fl_is_idle())
         watchdog_refresh();
 
-    for (i = 0; i < 1075000; i++)
-       watchdog_refresh();
-
+    // Let the watchdog reset the system
     while(1);
 }
