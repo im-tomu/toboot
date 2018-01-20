@@ -105,7 +105,8 @@ ftfl_busy_wait();
 
 static uint32_t address_for_block(unsigned blockNum)
 {
-    return 0x2000 + (blockNum << 10);
+    extern uint32_t __app_start__;
+    return ((uint32_t)&__app_start__) + (blockNum << 10);
 }
 
 void dfu_init(void)
