@@ -586,6 +586,9 @@ void USB_Handler(void)
 
             USB->DOEP0INT = USB_DOEP0INT_STUPPKTRCVD;
 
+            if (dev->state == WAIT_STATUS_IN)
+                dev->state = WAIT_SETUP;
+
             if (sts & USB_DOEP0INT_SETUP)
             {
                 USB->DOEP0INT = USB_DOEP0INT_SETUP;
