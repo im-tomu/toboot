@@ -29,6 +29,7 @@
  */
 
 #include "usb_desc.h"
+#include "webusb_defs.h"
 
 // USB Descriptors are binary data which the USB host reads to
 // automatically detect a USB device's capabilities.  The format
@@ -47,8 +48,6 @@
 // is meant to be configured by the header, so generally it is
 // only edited to add completely new USB interfaces or features.
 
-
-
 // **************************************************************
 //   USB Device
 // **************************************************************
@@ -56,9 +55,23 @@
 #define LSB(n) ((n) & 255)
 #define MSB(n) (((n) >> 8) & 255)
 
+#define USB_DT_BOS_SIZE 5
+#define USB_DT_BOS 0xf
+#define USB_DT_DEVICE_CAPABILITY 0x10
+#define USB_DC_PLATFORM 5
+
+struct usb_bos_descriptor {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint16_t wTotalLength;
+    uint8_t bNumDeviceCaps;
+    /* Descriptor ends here.  The following are used internally: */
+    const struct usb_device_capability_descriptor **capabilities;
+} __attribute__((packed));
+
 // USB Device Descriptor.  The USB host reads this first, to learn
 // what type of device is connected.
-static uint8_t device_descriptor[] = {
+static const uint8_t device_descriptor[] = {
         18,                                     // bLength
         1,                                      // bDescriptorType
         0x00, 0x02,                             // bcdUSB
@@ -86,7 +99,7 @@ static uint8_t device_descriptor[] = {
 
 // USB Configuration Descriptor.  This huge descriptor tells all
 // of the devices capbilities.
-static uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
+static const uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
         // configuration descriptor, USB spec 9.6.3, page 264-266, Table 9-10
         9,                                      // bLength;
         2,                                      // bDescriptorType;
@@ -135,25 +148,25 @@ struct usb_string_descriptor_struct {
     uint16_t wString[];
 };
 
-extern struct usb_string_descriptor_struct usb_string_manufacturer_name
+extern const struct usb_string_descriptor_struct usb_string_manufacturer_name
         __attribute__ ((weak, alias("usb_string_manufacturer_name_default")));
-extern struct usb_string_descriptor_struct usb_string_product_name
+extern const struct usb_string_descriptor_struct usb_string_product_name
         __attribute__ ((weak, alias("usb_string_product_name_default")));
 
-struct usb_string_descriptor_struct string0 = {
+static const struct usb_string_descriptor_struct string0 = {
     4,
     3,
     {0x0409}
 };
 
 // Microsoft OS String Descriptor. See: https://github.com/pbatard/libwdi/wiki/WCID-Devices
-struct usb_string_descriptor_struct usb_string_microsoft = {
+static const struct usb_string_descriptor_struct usb_string_microsoft = {
     18, 3,
     {'M','S','F','T','1','0','0', MSFT_VENDOR_CODE}
 };
  
 // Microsoft WCID
-uint8_t usb_microsoft_wcid[MSFT_WCID_LEN] = {
+const uint8_t usb_microsoft_wcid[MSFT_WCID_LEN] = {
     MSFT_WCID_LEN, 0, 0, 0,         // Length
     0x00, 0x01,                     // Version
     0x04, 0x00,                     // Compatibility ID descriptor index
@@ -167,12 +180,50 @@ uint8_t usb_microsoft_wcid[MSFT_WCID_LEN] = {
     0,0,0,0,0,0,                    // Reserved
 };
 
-struct usb_string_descriptor_struct usb_string_manufacturer_name_default = {
+#ifndef LANDING_PAGE_URL
+#define LANDING_PAGE_URL "dfu.tomu.im"
+#endif
+
+#define LANDING_PAGE_DESCRIPTOR_SIZE (WEBUSB_DT_URL_DESCRIPTOR_SIZE \
+                                    + sizeof(LANDING_PAGE_URL) - 1)
+#define WEBUSB_VENDOR_CODE 2
+
+static const struct webusb_platform_descriptor webusb_platform = {
+    .bLength = WEBUSB_PLATFORM_DESCRIPTOR_SIZE,
+    .bDescriptorType = USB_DT_DEVICE_CAPABILITY,
+    .bDevCapabilityType = USB_DC_PLATFORM,
+    .bReserved = 0,
+    .platformCapabilityUUID = WEBUSB_UUID,
+    .bcdVersion = 0x0100,
+    .bVendorCode = WEBUSB_VENDOR_CODE,
+    .iLandingPage = 1
+};
+
+static const struct webusb_url_descriptor landing_url_descriptor = {
+    .bLength = LANDING_PAGE_DESCRIPTOR_SIZE,
+    .bDescriptorType = WEBUSB_DT_URL,
+    .bScheme = WEBUSB_URL_SCHEME_HTTPS,
+    .URL = LANDING_PAGE_URL
+};
+
+static const struct usb_device_capability_descriptor* capabilities[] = {
+    (const struct usb_device_capability_descriptor*)&webusb_platform,
+};
+
+static const struct usb_bos_descriptor bos = {
+    .bLength = USB_DT_BOS_SIZE,
+    .bDescriptorType = USB_DT_BOS,
+    .wTotalLength = USB_DT_BOS_SIZE + sizeof(webusb_platform),
+    .bNumDeviceCaps = sizeof(capabilities)/sizeof(capabilities[0]),
+    .capabilities = capabilities
+};
+
+const struct usb_string_descriptor_struct usb_string_manufacturer_name_default = {
     2 + MANUFACTURER_NAME_LEN * 2,
     3,
     MANUFACTURER_NAME
 };
-struct usb_string_descriptor_struct usb_string_product_name_default = {
+const struct usb_string_descriptor_struct usb_string_product_name_default = {
     2 + PRODUCT_NAME_LEN * 2,
     3,
     PRODUCT_NAME
@@ -192,5 +243,7 @@ const usb_descriptor_list_t usb_descriptor_list[] = {
     {0x0301, (const uint8_t *)&usb_string_manufacturer_name, 0},
     {0x0302, (const uint8_t *)&usb_string_product_name, 0},
     {0x03EE, (const uint8_t *)&usb_string_microsoft, 0},
+    {0x0F00, (const uint8_t *)&bos, sizeof(bos)},
+    {0x0F01, (const uint8_t *)&landing_url_descriptor, LANDING_PAGE_DESCRIPTOR_SIZE},
     {0, NULL, 0}
 };

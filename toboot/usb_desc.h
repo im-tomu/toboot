@@ -63,7 +63,7 @@ struct device_req {
 // Microsoft Compatible ID Feature Descriptor
 #define MSFT_VENDOR_CODE    '~'     // Arbitrary, but should be printable ASCII
 #define MSFT_WCID_LEN       40
-extern uint8_t usb_microsoft_wcid[MSFT_WCID_LEN];
+extern const uint8_t usb_microsoft_wcid[MSFT_WCID_LEN];
 
 typedef struct {
     uint16_t  wValue;
@@ -72,11 +72,5 @@ typedef struct {
 } usb_descriptor_list_t;
 
 extern const usb_descriptor_list_t usb_descriptor_list[];
-
-enum FEATURE_SELECTOR
-{
-  FEATURE_ENDPOINT_HALT=0,
-  FEATURE_DEVICE_REMOTE_WAKEUP=1
-};
 
 #endif
