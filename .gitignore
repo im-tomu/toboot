@@ -1,0 +1,8 @@
+*.swp
+*.swo
+*~
+toboot/toboot.elf
+toboot/toboot.bin
+toboot/toboot.ihex
+toboot/.obj
+.vscode
