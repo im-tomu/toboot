@@ -36,6 +36,8 @@ SECTIONS
 
     /* Combined data and text, after relocation */
     .dtext : AT (_eflash) {
+        boot_token = .;
+        . += 8;
         . = ALIGN(4);
         _sdtext = .;
         *(.text*)
@@ -60,8 +62,7 @@ SECTIONS
         __bss_end = .;
     } > ram
 
-    __main_stack_end__ = ORIGIN(ram) + LENGTH(ram) - 8;
-    boot_token = __main_stack_end__;
+    __main_stack_end__ = ORIGIN(ram) + LENGTH(ram);
 
     /DISCARD/ : {
         *(.note.GNU-stack)
