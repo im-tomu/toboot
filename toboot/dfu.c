@@ -25,6 +25,7 @@
 #include "mcu.h"
 #include "usb_dev.h"
 #include "dfu.h"
+#include "toboot.h"
 
 // Internal flash-programming state machine
 static unsigned fl_current_addr = 0;
@@ -105,8 +106,25 @@ ftfl_busy_wait();
 
 static uint32_t address_for_block(unsigned blockNum)
 {
-    extern uint32_t __app_start__;
-    return ((uint32_t)&__app_start__) + (blockNum << 10);
+    // Legacy applications live at offset 0x4000.
+    // Applications that know about Toboot will indicate their block
+    // offset by placing a magic byte at offset 0x98.
+    // Ordinarily this would be the address offset for Vector98 (IRQ 22),
+    // but since there are only 20 IRQs on the EFM32HG, there are three
+    // 32-bit values that are unused starting at offset 0x94.
+    // We already use offset 0x94 for "disable boot", so use offset 0x98
+    // in the incoming stream to indicate flags for Toboot.
+    static uint32_t starting_offset;
+    if (blockNum == 0) {
+        if ((dfu_buffer[0x98 / 4] & TOBOOT_APP_MAGIC_MASK) == TOBOOT_APP_MAGIC) {
+            starting_offset = (dfu_buffer[0x98 / 4] & TOBOOT_APP_PAGE_MASK) >> TOBOOT_APP_PAGE_SHIFT;
+        }
+        else {
+            starting_offset = 4;
+        }
+        starting_offset *= 0x1000;
+    }
+    return starting_offset + (blockNum << 10);
 }
 
 void dfu_init(void)
