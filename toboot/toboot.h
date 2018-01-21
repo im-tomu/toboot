@@ -19,7 +19,7 @@ struct boot_token
   uint8_t  board_model;
   uint16_t reserved;
 } PACKED;
-__attribute__((section("boot_token"))) extern struct boot_token boot_token;
+__attribute__((section(".boot_token"))) extern struct boot_token boot_token;
 
 enum bootloader_reason
 {
