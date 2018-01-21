@@ -31,6 +31,10 @@ Users normally won't see Toboot.  Instead, the installed application will run au
 
 You can tell you're in Toboot because the red and green LEDs alternate four times per second.  In this mode, you can use dfu-util (or a [web version](https://devanlai.github.io/webdfu/dfu-util/)) to upload a new firmware.  Tomu will reboot once it has completed.
 
+When you're in the bootloader, the lights will flash like this:
+
+![Toboot Pattern](media/toboot-mode.gif?raw=true "Toboot Pattern")
+
 Application Support
 -------------------
 
