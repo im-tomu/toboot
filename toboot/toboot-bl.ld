@@ -7,8 +7,7 @@ ENTRY(Reset_Handler)
 MEMORY
 {
     bl_flash   :  org = 0x00000000,  len = 8k,
-/*    storage    :  org = 0x00002000,  len = 2k, */
-    app_flash  :  org = 0x00002000,  len = 0xE000,
+    app_flash  :  org = 0x00004000,  len = 0xC000,
     ram        :  org = 0x20000000,  len = 8k
 }
 
@@ -27,7 +26,6 @@ SECTIONS
         . = 0;
         KEEP(*(.vectors))
         *(.startup*)
-        *(.text*)
     } > bl_flash = 0xFF
     _eflash = .;
 
@@ -40,6 +38,7 @@ SECTIONS
     .dtext : AT (_eflash) {
         . = ALIGN(4);
         _sdtext = .;
+        *(.text*)
         *(.ramtext*)
         *(.rodata*)
         *(.data*)
