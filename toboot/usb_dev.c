@@ -61,7 +61,8 @@ enum CONTROL_STATE
     STALLED,
 };
 
-struct ctrl_data {
+struct ctrl_data
+{
     uint8_t *addr;
     uint16_t len;
     uint8_t require_zlp;
@@ -139,27 +140,22 @@ static void handle_datastage_out(struct usb_dev *dev)
     data_p->len -= len;
     data_p->addr += len;
 
-    len = data_p->len < pktsize ? data_p->len : pktsize;
-
     if (data_p->len == 0)
     {
-        #if 0
-        asm("bkpt #93");
         /* No more data to receive, proceed to send acknowledge for IN.  */
-        efm32hg_prepare_ep0_setup(dev);
+        efm32hg_prepare_ep0_setup();
         dev->state = WAIT_STATUS_IN;
-        efm32hg_prepare_ep0_in(NULL, 0, 0);
-        #endif
+        efm32hg_prepare_ep0_in(NULL, 0);
     }
     else
     {
+        len = data_p->len < pktsize ? data_p->len : pktsize;
         dev->state = OUT_DATA;
         efm32hg_prepare_ep0_out(data_p->addr, len);
     }
 }
 
-static void
-handle_datastage_in(struct usb_dev *dev)
+static void handle_datastage_in(struct usb_dev *dev)
 {
     struct ctrl_data *data_p = &dev->ctrl_data;
     uint32_t len = 64;
@@ -208,7 +204,7 @@ void usb_lld_ctrl_recv(struct usb_dev *dev, void *p, size_t len)
     dev->state = OUT_DATA;
 }
 
-void usb_lld_ctrl_ack(struct usb_dev *dev)
+static void usb_lld_ctrl_ack(struct usb_dev *dev)
 {
     /* Zero length packet for ACK.  */
     efm32hg_prepare_ep0_setup();
@@ -271,7 +267,8 @@ static void usb_lld_ctrl_error(struct usb_dev *dev)
 
 static void handle_out0(struct usb_dev *dev)
 {
-    if (dev->state == OUT_DATA) {
+    if (dev->state == OUT_DATA)
+    {
         /* It's normal control WRITE transfer.  */
         handle_datastage_out(dev);
 
@@ -322,10 +319,11 @@ static void handle_out0(struct usb_dev *dev)
        * Or else, unexpected state.
        * STALL the endpoint, until we receive the next SETUP token.
        */
-        if (last_setup.wRequestAndType == 0x0121)
-            usb_lld_ctrl_ack(dev);
-        else
-            usb_lld_ctrl_error(dev);
+        dev->state = STALLED;
+        efm32hg_ep0_out_stall();
+        efm32hg_ep0_in_stall();
+        dev->state = WAIT_SETUP;
+        efm32hg_prepare_ep0_setup();
     }
 }
 
@@ -538,7 +536,11 @@ static void handle_in0(struct usb_dev *dev)
     }
     else
     {
-        /* ERROR */
+        dev->state = STALLED;
+        efm32hg_ep0_out_stall();
+        efm32hg_ep0_in_stall();
+        dev->state = WAIT_SETUP;
+        efm32hg_prepare_ep0_setup();
     }
 }
 
@@ -562,10 +564,10 @@ void USB_Handler(void)
 
     if (intsts & USB_GINTSTS_IEPINT)
     {
-        uint32_t sts = USB_DINEPS[0].INT & USB->DIEPMSK;
+        uint32_t sts = USB->DIEP0INT & USB->DIEPMSK;
         if (sts & USB_DIEP_INT_XFERCOMPL)
         {
-            USB_DINEPS[0].INT = USB_DIEP_INT_XFERCOMPL;
+            USB->DIEP0INT = USB_DIEP_INT_XFERCOMPL;
             handle_in0(dev);
         }
     }
@@ -714,9 +716,10 @@ void usb_init(void)
     /* Unmask interrupts for TX and RX */
     USB->GAHBCFG |= USB_GAHBCFG_GLBLINTRMSK;
     USB->GINTMSK = USB_GINTMSK_USBRSTMSK |
-                   USB_GINTMSK_ENUMDONEMSK | USB_GINTMSK_IEPINTMSK | USB_GINTMSK_OEPINTMSK
-        /*| USB_GINTMSK_WKUPINTMSK*/;
+                   USB_GINTMSK_ENUMDONEMSK | USB_GINTMSK_IEPINTMSK | USB_GINTMSK_OEPINTMSK;
     USB->DAINTMSK = USB_DAINTMSK_INEPMSK0 | USB_DAINTMSK_OUTEPMSK0;
     USB->DOEPMSK = USB_DOEPMSK_SETUPMSK | USB_DOEPMSK_XFERCOMPLMSK | USB_DOEPMSK_STSPHSERCVDMSK;
     USB->DIEPMSK = USB_DIEPMSK_XFERCOMPLMSK;
+    USB_DOUTEPS[0].CTL = USB_DOEP_CTL_SETD0PIDEF | USB_DOEP_CTL_USBACTEP | USB_DOEP_CTL_SNAK | USB_DOEP_CTL_EPTYPE_CONTROL;
+    USB_DINEPS[0].CTL = USB_DIEP_CTL_SETD0PIDEF | USB_DIEP_CTL_USBACTEP | USB_DIEP_CTL_SNAK | USB_DIEP_CTL_EPTYPE_CONTROL;
 }
