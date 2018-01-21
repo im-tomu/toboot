@@ -133,9 +133,9 @@ int test_pin_short(void)
     // If the outer pins on the edge connector are shorted, enter the bootloader.
     // We want to test CAP1A (PC1) and CAP0B (PE12).
 
-    // If the bottom four bits of 0x2094 are 70b0, don't allow
+    // If the bottom four bits of 0x4094 are 70b0, don't allow
     // us to enter the bootloader this way.  This is a security lockout.
-    if (((*((uint32_t *)(((uint32_t)&__app_start__) + 0x94))) & 0xffff) == 0x70b0) {
+    if (((*((uint32_t *)(((uint32_t)&__app_start__) + 0x94))) & TOBOOT_APP_MAGIC_MASK) == TOBOOT_APP_MAGIC) {
         return 0;
     }
 
