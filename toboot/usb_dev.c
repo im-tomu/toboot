@@ -588,9 +588,6 @@ void USB_Handler(void)
 
             USB->DOEP0INT = USB_DOEP0INT_STUPPKTRCVD;
 
-            if (dev->state == WAIT_STATUS_IN)
-                dev->state = WAIT_SETUP;
-
             if (sts & USB_DOEP0INT_SETUP)
             {
                 USB->DOEP0INT = USB_DOEP0INT_SETUP;
@@ -599,6 +596,8 @@ void USB_Handler(void)
                 dev->dev_req = ep0_setup_pkt[2 - supcnt];
                 usb_setup(dev);
             }
+            else if (dev->state == WAIT_STATUS_IN)
+                dev->state = WAIT_SETUP;
             else if (dev->state != WAIT_SETUP)
                 handle_out0(dev);
         }
