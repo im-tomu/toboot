@@ -32,4 +32,19 @@ enum bootloader_reason
 
 extern enum bootloader_reason bootloader_reason;
 
+#ifndef TOBOOT_CFG_FLAGS
+#define TOBOOT_CFG_FLAGS 0
+#endif
+#define TOBOOT_CFG_MAGIC_MASK 0xffff
+#define TOBOOT_CFG_MAGIC 0x70b0
+
+#ifndef TOBOOT_APP_FLAGS
+#define TOBOOT_APP_FLAGS 0
+#endif
+
+#define TOBOOT_APP_MAGIC_MASK 0xffff
+#define TOBOOT_APP_MAGIC 0x6fb0
+#define TOBOOT_APP_PAGE_MASK 0x00ff0000
+#define TOBOOT_APP_PAGE_SHIFT 16
+
 #endif /* TOBOOT_H_ */
