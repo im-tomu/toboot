@@ -35,48 +35,20 @@ When you're in the bootloader, the lights will flash like this:
 
 ![Toboot Pattern](media/toboot-mode.gif?raw=true "Toboot Pattern")
 
-Application Support
--------------------
+Application Programming API
+---------------------------
 
-Toboot sets the watchdog timer and increments the boot count when it runs.  That way it can tell if your application isn't behaving properly.  The following struct can be used to interact with the bootloader:
+**Toboot Sets the Watchdog Timer**.  Your program **will** reboot if the watchdog timer isn't cleared within a few tens of milliseconds.  This is to ensure the code returns to the bootloader if you accidentally do something like flash an MP3 file, or try to program the .ihex version.
 
-````
-#define BOOTLOADER_ENTER_TOKEN 0x74624346
+A quick-and-dirty way to do this is to put the following at the start of your program:
 
-#define PACKED __attribute__((packed))
-
-// This describes the structure that allows the OS to communicate
-// with the bootloader.  It keeps track of how many times we've
-// tried booting, as well as a magic value that tells us to enter
-// the bootloader instead of booting the app.
-// It also keeps track of the board model.
-struct boot_token
-{
-  uint32_t magic;
-  uint8_t  boot_count;
-  uint8_t  board_model;
-  uint16_t reserved;
-} PACKED;
-__attribute__((section("boot_token"))) extern struct boot_token boot_token;
+````c++
+*(uint32_t *)0x40088000UL = 0;
 ````
 
-The file "tomu.ld" in this repo can be used to place your program at the correct location (offset 0x2000), as well as setting up the boot token.
+Of course, it's better to actually use a Watchdog driver and keep the watchdog fed normally.  But this will at least get you going.
 
-On boot, you should reset the watchdog timer and clear the boot count.  Something like this should do nicely:
-
-````
-  WDOG->CTRL = 0;
-  boot_token.boot_count = 0;
-````
-
-If you want to boot into the bootloader, set "magic" to the magic value and reboot:
-
-````
-  boot_token.magic = 0x74624346;
-  SCB->AIRCR = 0x05FA0004; // Use AIRCR method of reset
-````
-
-Users can upload code using the bootloader, and can enter the bootloader by shorting out the two outer pins while applying power.  If you would like to disable this feature, set offset 0x94 of your application (i.e. the address of Vector94) to be 0xXXXX70b0.  This will disable the pin check, but you can still enter the bootloader by failing to boot, or by setting the magic value.
+More information on the Toboot API is available in [API.md](API.md).
 
 Building
 --------
