@@ -116,9 +116,8 @@ static int test_boot_token(void)
 }
 
 static void busy_wait(int count) {
-    return;
     int i;
-    for (i = 0; i < count+2000; i++)
+    for (i = 0; i < count+20000; i++)
         asm("nop");
 }
 
