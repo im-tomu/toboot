@@ -1,9 +1,6 @@
 PACKAGE    = toboot
-LIBS       =
-VERSION    = v1.0
 ADD_CFLAGS =
 ADD_LFLAGS = 
-EXTRA_DIST =
 
 TRGT      ?= arm-none-eabi-
 CC         = $(TRGT)gcc
@@ -14,12 +11,11 @@ LDSCRIPT   = toboot-bl.ld
 DBG_CFLAGS = -ggdb -g -DDEBUG -Wall
 DBG_LFLAGS = -ggdb -g -Wall
 CFLAGS     = $(ADD_CFLAGS) \
-             -DVERSION=\"$(VERSION)\" -DPACKAGE=\"$(PACKAGE)\" \
-             -DPREFIX=\"$(PREFIX)\" -DDESTDIR=\"$(DESTDIR)\" \
+			 -DTOBOOT_APP_FLAGS=0x00006fb0 \
              -Wall -Wextra \
              -mcpu=cortex-m0plus -mfloat-abi=soft -mthumb \
              -ffunction-sections -fdata-sections -fno-common \
-             -fomit-frame-pointer -falign-functions=16 -Os
+             -fomit-frame-pointer -Os
 CXXFLAGS   = $(CFLAGS) -std=c++11 -fno-rtti -fno-exceptions
 LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
              -nostartfiles \
