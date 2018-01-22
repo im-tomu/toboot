@@ -22,6 +22,8 @@ have EFM32HG support.
 Using
 -----
 
+**To enter Toboot manually, short out the outer two pads when applying power**.
+
 Users normally won't see Toboot.  Instead, the installed application will run automatically.  Toboot will run if any of the following occurs:
 
 1. There is no main application loaded.  This can happen if you've erased the flash, or if you've loaded an invalid binary.  The program's start address must be in flash, and the stack pointer must be in RAM.
