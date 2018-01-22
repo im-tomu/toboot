@@ -28,10 +28,17 @@ The first 8 bytes of memory (offset 0x20000000 - 0x20000008) are reserved for a 
 
 ````c++
 struct boot_token {
-    uint32\_t magic;
-    uint8\_t  boot\_count;
-    uint8\_t  board\_model;
-    uint16\_t reserved;
+    // Set this to 0x74624346 and reboot to enter bootloader
+    uint32_t magic;
+
+    // Set this to 0 when your program starts.
+    uint8_t  boot_count;
+
+    // The bootloader should set this to 0x23 for Tomu.
+    uint8_t  board_model;
+
+    // Unused.
+    uint16_t reserved;
 };
 ````
 
@@ -57,10 +64,12 @@ If *LLLL* is set to 0x70b0, then users cannot enter Toboot by shorting out the p
 Vector98 (located 98 bytes from the start of your program) is the Toboot App Flag.  This configures how your app is loaded.  It contains the following format:
 
 ````c++
-0xrrPPKKKK
+0xrrSSKKKK
 ````
 
-Set *KKKK* to 0x6fb0.  Otherwise the App Configuration Flag is ignored.
+*rr* values are reserved.  Set these to 0.
+
+The *KKKK* values are the key.  They must be set to 0x6fb0, otherwise the App Configuration Flag is ignored.
 
 Set *SS* to the starting page number to load your program at.  For example, Toboot has this value set to 0x00006fb0, which causes it to be loaded beginning at page 0.  That way, Toboot can be used to reflash itself.
 
