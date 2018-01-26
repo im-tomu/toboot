@@ -120,9 +120,9 @@ static uint32_t address_for_block(unsigned blockNum)
             starting_offset = (dfu_buffer[0x98 / 4] & TOBOOT_APP_PAGE_MASK) >> TOBOOT_APP_PAGE_SHIFT;
         }
         else {
-            starting_offset = 4;
+            starting_offset = 16;
         }
-        starting_offset *= 0x1000;
+        starting_offset *= 0x400;
     }
     return starting_offset + (blockNum << 10);
 }
