@@ -116,3 +116,14 @@ uint32_t tb_generation(const struct toboot_configuration *cfg) {
         return 0;
     return cfg->reserved_gen;
 }
+
+__attribute__ ((used, section(".toboot_configuration"))) struct toboot_configuration toboot_configuration = {
+    .magic = TOBOOT_V2_MAGIC,
+    .start = 0,
+    .config = 0,
+    .reserved_gen = 0,
+    .lock_entry = 0,
+    .erase_mask_lo = 0,
+    .erase_mask_hi = 0,
+    .reserved_hash = 0,
+};
