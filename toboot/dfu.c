@@ -43,7 +43,15 @@ static struct toboot_state {
     //  2 (toboot v2)
     uint8_t version;
 
-    uint32_t current_addr;
+    // When clearing, first ensure these sectors are cleared prior to updating
+    uint32_t clear_lo;
+    uint32_t clear_hi;
+
+    // The current block we're clearing
+    uint32_t clear_current;
+
+    // This is the address we'll start programming/erasing from after clearing
+    uint32_t next_addr;
 
     enum {
         /// Toboot has just started
@@ -160,6 +168,26 @@ static uint32_t address_for_block(unsigned blockNum)
     return starting_offset + (blockNum << 10);
 }
 
+// If requested, erase sectors before loading new code.
+static void pre_clear_next_block(void) {
+
+    // If there is another sector to clear, do that.
+    while (++tb_state.clear_current < 64) {
+        if ((tb_state.clear_current < 32) && (tb_state.clear_lo & (1 << tb_state.clear_current))) {
+            ftfl_begin_erase_sector(tb_state.clear_current);
+            return;
+        }
+        else if ((tb_state.clear_current < 64) && (tb_state.clear_hi & (1 << tb_state.clear_current & 31))) {
+            ftfl_begin_erase_sector(tb_state.clear_current);
+            return;
+        }
+    }
+
+    // No more sectors to clear, continue with programming
+    tb_state.state = tbsLOADING;
+    ftfl_begin_erase_sector(tb_state.next_addr);
+}
+
 void dfu_init(void)
 {
     tb_state.state = tbsIDLE;
@@ -228,6 +256,8 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
     // Ensure the offset is valid.  If the offset is not 0, and the address is located inside
     // Toboot, this is an error because the board would become bricked.
     if (blockNum == 0) {
+        const struct toboot_configuration *old_config = tb_get_config();
+
         if ((fl_current_addr != 0) && (fl_current_addr < tb_first_free_address())) {
             set_state(dfuERROR, errADDRESS);
             return false;
@@ -235,7 +265,6 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
 
         // Calculate generation number and hash
         if (tb_state.version == 2) {
-            const struct toboot_configuration *old_config = tb_get_config();
             struct toboot_configuration *new_config = (struct toboot_configuration *)&dfu_buffer[0x94 / 4];
 
             // Update generation number
@@ -247,8 +276,35 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
             // Generate a valid signature
             tb_sign_config(new_config);
         }
+
+        // If the old configuration requires that certain blocks be erased, do that.
+        tb_state.clear_hi = old_config->erase_mask_hi;
+        tb_state.clear_lo = old_config->erase_mask_lo;
+        tb_state.clear_current = 0;
+
+        uint32_t i;
+        // Ensure we don't erase Toboot itself
+        for (i = 0; i < tb_first_free_sector(); i++) {
+            if (i < 32)
+                tb_state.clear_lo &= ~(1 << i);
+            else
+                tb_state.clear_hi &= ~(1 << i);
+        }
+
+        // IF we still have sectors to clear, do that.  Otherwise,
+        // go straight into loading the program.
+        if (tb_state.clear_lo || tb_state.clear_hi) {
+            tb_state.state = tbsCLEARING;
+            tb_state.next_addr = fl_current_addr;
+            pre_clear_next_block();
+        }
+        else {
+            tb_state.state = tbsLOADING;
+            ftfl_begin_erase_sector(fl_current_addr);
+        }
     }
-    ftfl_begin_erase_sector(fl_current_addr);
+    else
+        ftfl_begin_erase_sector(fl_current_addr);
 
     set_state(dfuDNLOAD_SYNC, OK);
     return true;
@@ -304,9 +360,15 @@ static void fl_state_poll(void)
 
         case flsERASING:
             if (!fl_handle_status(fstat)) {
+                // ?If we're still pre-clearing, continue with that.
+                if (tb_state.state == tbsCLEARING) {
+                    pre_clear_next_block();
+                }
                 // Done! Move on to programming the sector.
-                fl_state = flsPROGRAMMING;
-                ftfl_begin_program_section(fl_current_addr);
+                else {
+                    fl_state = flsPROGRAMMING;
+                    ftfl_begin_program_section(fl_current_addr);
+                }
             }
             break;
 
