@@ -223,6 +223,21 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
             set_state(dfuERROR, errADDRESS);
             return false;
         }
+
+        // Calculate generation number and hash
+        if (tb_state.version == 2) {
+            const struct toboot_configuration *old_config = tb_get_config();
+            struct toboot_configuration *new_config = (struct toboot_configuration *)&dfu_buffer[0x94 / 4];
+
+            // Update generation number
+            new_config->reserved_gen = old_config->reserved_gen + 1;
+
+            // Ensure we know this header is not fake
+            new_config->config &= ~TOBOOT_CONFIG_FAKE;
+
+            // Generate a valid signature
+            tb_sign_config(new_config);
+        }
     }
     ftfl_begin_erase_sector(fl_current_addr);
 
