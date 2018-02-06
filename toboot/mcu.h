@@ -4644,7 +4644,7 @@ static inline void efm32hg_revno(struct efm32hg_rev *rev)
 }
 
 
-#define CORTEX_NUM_VECTORS 20
+#define CORTEX_NUM_VECTORS 21
 
 #define DMA_Handler       Vector40 // 0
 #define GPIO_EVEN_Handler Vector44 // 1
