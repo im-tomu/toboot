@@ -1,5 +1,10 @@
 #include "toboot-api.h"
 #include "toboot-internal.h"
+
+#define XXH_NO_LONG_LONG
+#define XXH_FORCE_ALIGN_CHECK 0
+#define XXH_FORCE_NATIVE_FORMAT 0
+#define XXH_PRIVATE_API
 #include "xxhash.h"
 
 static const struct toboot_configuration *current_config = NULL;
