@@ -41,5 +41,8 @@ extern enum bootloader_reason bootloader_reason;
 uint32_t tb_first_free_address(void);
 uint32_t tb_first_free_sector(void);
 const struct toboot_configuration *tb_get_config(void);
+uint32_t tb_config_hash(const struct toboot_configuration *cfg);
+void tb_sign_config(struct toboot_configuration *cfg);
+uint32_t tb_generation(const struct toboot_configuration *cfg);
 
 #endif /* TOBOOT_INTERNAL_H_ */
