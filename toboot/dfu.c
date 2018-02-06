@@ -172,7 +172,7 @@ static uint32_t address_for_block(unsigned blockNum)
 static void pre_clear_next_block(void) {
 
     // If there is another sector to clear, do that.
-    while (++tb_state.clear_current < 64) {
+    if (++tb_state.clear_current < 64) {
         if ((tb_state.clear_current < 32) && (tb_state.clear_lo & (1 << tb_state.clear_current))) {
             ftfl_begin_erase_sector(tb_state.clear_current);
             return;
