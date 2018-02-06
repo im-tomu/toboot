@@ -37,8 +37,14 @@ static enum {
 } fl_state;
 
 static struct toboot_state {
-    uint8_t version; // 0 (legacy), 1 (toboot v1), 2 (toboot v2)
+    // Version number of the program being loaded:
+    //  0 (legacy)
+    //  1 (toboot v1)
+    //  2 (toboot v2)
+    uint8_t version;
+
     uint32_t current_addr;
+
     enum {
         /// Toboot has just started
         tbsIDLE,
