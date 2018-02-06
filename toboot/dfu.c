@@ -162,11 +162,14 @@ static uint32_t address_for_block(unsigned blockNum)
 
 void dfu_init(void)
 {
+    tb_state.state = tbsIDLE;
+
+    // Ensure the clocks for the memory are enabled
     CMU->OSCENCMD = CMU_OSCENCMD_AUXHFRCOEN;
     while (!(CMU->STATUS & CMU_STATUS_AUXHFRCORDY))
         ;
 
-    /* Unlock the MSC */
+    // Unlock the MSC
     MSC->LOCK = MSC_UNLOCK_CODE;
 
     // Enable writing to flash
