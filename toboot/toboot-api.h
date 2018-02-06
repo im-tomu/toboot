@@ -11,6 +11,12 @@ struct toboot_configuration {
     /// Set to 0x907070b2 to indicate a valid configuration header.
     uint32_t magic;
     
+    /// Reserved value.  Used as a generational counter.  Toboot will
+    /// overwrite this value with a monotonically-increasing counter
+    /// every time a new image is burned.  This is used to determine
+    /// which image is the newest.
+    uint16_t reserved_gen;
+
     /// The starting page for your program in 1024-byte blocks.
     /// Toboot itself sets this to 0.  If this is nonzero, then it
     /// must be located after the Toboot image.  Toboot is currently
@@ -19,12 +25,6 @@ struct toboot_configuration {
 
     /// Configuration bitmask.  See below for values.
     uint8_t  config;
-
-    /// Reserved value.  Used as a generational counter.  Toboot will
-    /// overwrite this value with a monotonically-increasing counter
-    /// every time a new image is burned.  This is used to determine
-    /// which image is the newest.
-    uint16_t reserved_gen;
 
     /// Set to 0x18349420 to prevent the user from entering Toboot manually.
     /// Use this value with caution, as it can be used to lockout a Tomu.
@@ -45,7 +45,7 @@ struct toboot_configuration {
     /// this when it programs the first block.  A Toboot configuration
     /// header MUST have a valid hash in order to be considered valid.
     uint32_t reserved_hash;
-};
+} __attribute__((packed));
 
 /// Toboot V1.0 leaves IRQs enabled, mimicking the behavior of
 /// AN0042.  Toboot V2.0 makes this configurable by adding a
