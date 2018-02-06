@@ -22,10 +22,11 @@
  */
 
 #include <stdbool.h>
+#include "toboot-api.h"
+#include "toboot-internal.h"
 #include "mcu.h"
 #include "usb_dev.h"
 #include "dfu.h"
-#include "toboot.h"
 
 // Internal flash-programming state machine
 static unsigned fl_current_addr = 0;
@@ -34,6 +35,21 @@ static enum {
     flsERASING,
     flsPROGRAMMING
 } fl_state;
+
+static struct toboot_state {
+    uint8_t version; // 0 (legacy), 1 (toboot v1), 2 (toboot v2)
+    uint32_t current_addr;
+    enum {
+        /// Toboot has just started
+        tbsIDLE,
+
+        /// Secure erase memory is being cleared
+        tbsCLEARING,
+
+        /// New image is being loaded
+        tbsLOADING,
+    } state;
+} tb_state;
 
 static dfu_state_t dfu_state = dfuIDLE;
 static dfu_status_t dfu_status = OK;
@@ -106,22 +122,33 @@ ftfl_busy_wait();
 
 static uint32_t address_for_block(unsigned blockNum)
 {
-    // Legacy applications live at offset 0x4000.
-    // Applications that know about Toboot will indicate their block
-    // offset by placing a magic byte at offset 0x98.
-    // Ordinarily this would be the address offset for Vector98 (IRQ 22),
-    // but since there are only 20 IRQs on the EFM32HG, there are three
-    // 32-bit values that are unused starting at offset 0x94.
-    // We already use offset 0x94 for "disable boot", so use offset 0x98
-    // in the incoming stream to indicate flags for Toboot.
     static uint32_t starting_offset;
     if (blockNum == 0) {
-        if ((dfu_buffer[0x98 / 4] & TOBOOT_APP_MAGIC_MASK) == TOBOOT_APP_MAGIC) {
-            starting_offset = (dfu_buffer[0x98 / 4] & TOBOOT_APP_PAGE_MASK) >> TOBOOT_APP_PAGE_SHIFT;
+        // Determine Toboot version.
+        if ((dfu_buffer[0x94 / 4] & TOBOOT_V2_MAGIC_MASK) == TOBOOT_V2_MAGIC) {
+            tb_state.version = 2;
+            starting_offset = ((struct toboot_configuration *)&dfu_buffer[0x94 / 4])->start;
         }
+        // V1 used a different offset.
+        else if ((dfu_buffer[0x98 / 4] & TOBOOT_V1_MAGIC_MASK) == TOBOOT_V1_MAGIC) {
+            // Applications that know about Toboot will indicate their block
+            // offset by placing a magic byte at offset 0x98.
+            // Ordinarily this would be the address offset for IRQ 22,
+            // but since there are only 20 IRQs on the EFM32HG, there are three
+            // 32-bit values that are unused starting at offset 0x94.
+            // We already use offset 0x94 for "disable boot", so use offset 0x98
+            // in the incoming stream to indicate flags for Toboot.
+            tb_state.version = 1;
+            starting_offset = (dfu_buffer[0x98 / 4] & TOBOOT_V1_APP_PAGE_MASK) >> TOBOOT_V1_APP_PAGE_SHIFT;
+        }
+        // Legacy programs default to offset 0x4000.
         else {
+            tb_state.version = 0;
             starting_offset = 16;
         }
+
+        // Set the state to "CLEARING", since we're just starting the programming process.
+        tb_state.state = tbsCLEARING;
         starting_offset *= 0x400;
     }
     return starting_offset + (blockNum << 10);
@@ -188,6 +215,15 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
     fl_state = flsERASING;
     fl_current_addr = address_for_block(blockNum);
     fl_num_words = blockLength / 4;
+
+    // Ensure the offset is valid.  If the offset is not 0, and the address is located inside
+    // Toboot, this is an error because the board would become bricked.
+    if (blockNum == 0) {
+        if ((fl_current_addr != 0) && (fl_current_addr < tb_first_free_address())) {
+            set_state(dfuERROR, errADDRESS);
+            return false;
+        }
+    }
     ftfl_begin_erase_sector(fl_current_addr);
 
     set_state(dfuDNLOAD_SYNC, OK);

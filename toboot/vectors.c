@@ -2,11 +2,7 @@
 #include <stdbool.h>
 
 #include "mcu.h"
-#include "toboot.h"
-
-#ifndef CORTEX_NUM_VECTORS
-#define CORTEX_NUM_VECTORS 32
-#endif
+#include "toboot-api.h"
 
 /**
  * @brief   Type of an IRQ vector.
@@ -126,13 +122,7 @@ vectors_t _vectors = {
     Vector80,           Vector84,           Vector88,           Vector8C,
 #endif
 #if CORTEX_NUM_VECTORS > 20
-    Vector90,           (void *)TOBOOT_CFG_FLAGS,   (void *)TOBOOT_APP_FLAGS,   Vector9C,
-#endif
-#if CORTEX_NUM_VECTORS > 24
-    VectorA0,           VectorA4,           VectorA8,           VectorAC,
-#endif
-#if CORTEX_NUM_VECTORS > 28
-    VectorB0,           VectorB4,           VectorB8,           VectorBC,
+    Vector90,
 #endif
   }
 };
