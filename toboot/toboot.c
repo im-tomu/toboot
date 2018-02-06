@@ -119,9 +119,15 @@ uint32_t tb_generation(const struct toboot_configuration *cfg) {
 
 __attribute__ ((used, section(".toboot_configuration"))) struct toboot_configuration toboot_configuration = {
     .magic = TOBOOT_V2_MAGIC,
+
+    // The current "generation" flag sits at the same location as the
+    // old Toboot "Config" flag.  By setting "reserved_gen" to this value,
+    // we can make the V1 bootloader treat V2 images as valid.
+    .reserved_gen = TOBOOT_V1_APP_MAGIC,
+
     .start = 0,
     .config = 0,
-    .reserved_gen = 0,
+
     .lock_entry = 0,
     .erase_mask_lo = 0,
     .erase_mask_hi = 0,
