@@ -17,12 +17,20 @@ uint32_t tb_first_free_address(void) {
 #undef PAGE_ROUND_UP
 }
 
+uint32_t tb_config_hash(const struct toboot_configuration *cfg) {
+    return XXH32(cfg, sizeof(*cfg) - 4, TOBOOT_HASH_SEED);
+}
+
+void tb_sign_config(struct toboot_configuration *cfg) {
+    cfg->reserved_hash = tb_config_hash(cfg);
+}
+
 static int tb_valid_signature_at_page(uint32_t page) {
     const struct toboot_configuration *cfg = (const struct toboot_configuration *)((page * 1024) + 0x94);
     if (cfg->magic != TOBOOT_V2_MAGIC)
         return -1;
     
-    uint32_t calc_hash = XXH32(cfg, sizeof(cfg)-4, TOBOOT_HASH_SEED);
+    uint32_t calc_hash = tb_config_hash(cfg);
     if (calc_hash != cfg->reserved_hash)
         return -2;
 
@@ -93,13 +101,12 @@ const struct toboot_configuration *tb_get_config(void) {
     fake_config.erase_mask_hi = 0;
 
     // Calculate a valid hash
-    fake_config.reserved_hash = XXH32(&fake_config, sizeof(fake_config)-4, TOBOOT_HASH_SEED);
+    tb_sign_config(&fake_config);
 
     return &fake_config;
 }
 
-uint32_t tb_generation(void) {
-    const struct toboot_configuration *cfg = tb_get_config();
+uint32_t tb_generation(const struct toboot_configuration *cfg) {
     if (!cfg)
         return 0;
     return cfg->reserved_gen;
