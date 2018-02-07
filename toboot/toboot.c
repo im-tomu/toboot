@@ -16,7 +16,7 @@ uint32_t tb_first_free_address(void) {
 #define PADDR(x) ((uint32_t)&x)
 #define PAGE_SIZE 1024
 #define PAGE_ROUND_UP(x) ( (((uint32_t)(x)) + PAGE_SIZE-1) & (~(PAGE_SIZE-1)) ) 
-    return PAGE_ROUND_UP(PADDR(_eflash) + (PADDR(_sdtext) - PADDR(_edtext)));
+    return PAGE_ROUND_UP(PADDR(_eflash) + (PADDR(_edtext) - PADDR(_sdtext)));
 #undef PADDR
 #undef PAGE_SIZE
 #undef PAGE_ROUND_UP
