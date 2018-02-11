@@ -66,7 +66,7 @@ the right pins to use on your own.
 
 `tomu` can also be flashed using the `ST-Link v2` programmer. The `ST-Link v2` comes as part of [STM Discovery][stmdisco] and [STM Nucleo][stmnucleo] boards. It can also be bought off eBay/Aliexpress/etc. for 2-5 USD in a USB Stick format.
 
-This example uses an STM32F407 discovery board, however the interface should be the same for all STM Discovery and Nucleo boards. If you have a chinese USB stick, they usually implement the [10-pin Cortex Debug Connector][cortexdebug] and you'll need to connect to the `VDD`, `GND`, `SWDIO` and `SWDCLK` pins there as well.
+This example uses an STM32F407 discovery board, however the interface should be the same for all STM Discovery and Nucleo boards. If you have a chinese USB stick, they usually follow the layout of the [10-pin Cortex Debug Connector][cortexdebug] and you'll need to connect to the `VDD`, `GND`, `SWDIO` and `SWDCLK` pins there as well.
 
 For wiring up the Discovery/Nucleo, follow the picture. The coloring of the pins is the same as described under `Wiring`. Also make sure your ST-Link selector jumpers are cleared. Note that Discovery ST-Link does not power the target MCU directly, so power has to come from the host board.
 
@@ -75,3 +75,8 @@ For wiring up the Discovery/Nucleo, follow the picture. The coloring of the pins
 [stmdisco]: http://www.st.com/en/evaluation-tools/stm32-mcu-discovery-kits.html?querycriteria=productId=LN1848
 [stmnucleo]: http://www.st.com/en/evaluation-tools/stm32-mcu-nucleo.html?querycriteria=productId=LN1847
 [cortexdebug]: http://www2.keil.com/coresight/coresight-connectors/
+
+After connecting, place the firmware that you want to flash in this directory under the name `program.bin` and run:
+```
+openocd -f tomu_st.conf
+```
