@@ -73,5 +73,5 @@ For wiring up the Discovery/Nucleo, follow the picture. The coloring of the pins
 
 After connecting, run:
 ```
-openocd -f tomu-flash.conf
+openocd -f interface/stlink-v2.cfg -f tomu-flash.conf
 ```
