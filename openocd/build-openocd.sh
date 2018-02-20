@@ -38,8 +38,3 @@ make -j"$(nproc)"
 
 # ... and install OpenOCD.
 sudo make install
-
-# Install the configurations.
-# TODO: Make this less painful, because we really shouldn't be clobbering
-#       OpenOCD's actual default configurations.
-cp *.cfg /usr/local/share/openocd/scripts/interface/
