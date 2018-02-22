@@ -12,41 +12,9 @@
 MEMORY
 {
   FLASH (rx) : ORIGIN = 0x00002000, LENGTH = 0xE000
-  RAM (rwx)  : ORIGIN = 0x20000000, LENGTH = 0x2000 - 8
+  RAM (rwx)  : ORIGIN = 0x20000000 + 8, LENGTH = 0x2000 - 8
 }
 
-/* Linker script to place sections and symbol values. Should be used together
- * with other linker script that defines memory regions FLASH and RAM.
- * It references following symbols, which must be defined in code:
- *   Reset_Handler : Entry of reset handler
- *
- * It defines following symbols, which code can use without definition:
- *   __exidx_start
- *   __exidx_end
- *   __copy_table_start__
- *   __copy_table_end__
- *   __zero_table_start__
- *   __zero_table_end__
- *   __etext
- *   __data_start__
- *   __preinit_array_start
- *   __preinit_array_end
- *   __init_array_start
- *   __init_array_end
- *   __fini_array_start
- *   __fini_array_end
- *   __data_end__
- *   __bss_start__
- *   __bss_end__
- *   __end__
- *   end
- *   __HeapLimit
- *   __StackLimit
- *   __StackTop
- *   __stack
- *   __Vectors_End
- *   __Vectors_Size
- */
 ENTRY(Reset_Handler)
 
 SECTIONS
@@ -54,9 +22,8 @@ SECTIONS
   .text :
   {
     KEEP(*(.vectors))
-    __Vectors_End = .;
-    __Vectors_Size = __Vectors_End - __Vectors;
-    __end__ = .;
+    . = ORIGIN(FLASH) + 0x94;
+    KEEP(*(.toboot_header))
 
     *(.text*)
 
@@ -94,41 +61,9 @@ SECTIONS
   } > FLASH
   __exidx_end = .;
 
-  /* To copy multiple ROM to RAM sections,
-   * uncomment .copy.table section and,
-   * define __STARTUP_COPY_MULTIPLE in startup_ARMCMx.S */
-  /*
-  .copy.table :
-  {
-    . = ALIGN(4);
-    __copy_table_start__ = .;
-    LONG (__etext)
-    LONG (__data_start__)
-    LONG (__data_end__ - __data_start__)
-    LONG (__etext2)
-    LONG (__data2_start__)
-    LONG (__data2_end__ - __data2_start__)
-    __copy_table_end__ = .;
-  } > FLASH
-  */
-
-  /* To clear multiple BSS sections,
-   * uncomment .zero.table section and,
-   * define __STARTUP_CLEAR_BSS_MULTIPLE in startup_ARMCMx.S */
-  /*
-  .zero.table :
-  {
-    . = ALIGN(4);
-    __zero_table_start__ = .;
-    LONG (__bss_start__)
-    LONG (__bss_end__ - __bss_start__)
-    LONG (__bss2_start__)
-    LONG (__bss2_end__ - __bss2_start__)
-    __zero_table_end__ = .;
-  } > FLASH
-  */
-
   __etext = .;
+
+  toboot_runtime = ORIGIN(RAM) - 8;
 
   .data : AT (__etext)
   {
@@ -198,8 +133,6 @@ SECTIONS
   __StackTop = ORIGIN(RAM) + LENGTH(RAM);
   __StackLimit = __StackTop - SIZEOF(.stack_dummy);
   PROVIDE(__stack = __StackTop);
-
-  boot_token = __StackTop;
 
   /* Check if data + heap + stack exceeds RAM limit */
   ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed with stack")
