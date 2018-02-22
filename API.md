@@ -56,7 +56,7 @@ The first block of your program should contain the value 0x907070b2 at offset 0x
 Start Sector
 -------
 
-The starting sector indicates where in RAM the first block will be loaded.  To replace Toboot, this value should be 0 (see Updating Toboot below).  Otherwise, the value should be located somewhere after Toboot.  It is illegal to load the program into the region populated by Toboot itself, unless you are updating the entire thing.
+The starting sector indicates where in RAM the first block will be loaded. This value should be located somewhere after Toboot.  It is illegal to load the program into the region populated by Toboot itself, even if you are updating Toboot.  To perform an update, use a separate program to do the updating.
 
 Sectors will be erased before they are written.
 
