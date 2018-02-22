@@ -253,12 +253,13 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
     fl_current_addr = address_for_block(blockNum);
     fl_num_words = blockLength / 4;
 
-    // Ensure the offset is valid.  If the offset is not 0, and the address is located inside
-    // Toboot, this is an error because the board would become bricked.
+    // If it's the first block, figure out what we need to do in terms of erasing
+    // data and programming the new file.
     if (blockNum == 0) {
         const struct toboot_configuration *old_config = tb_get_config();
 
-        if ((fl_current_addr != 0) && (fl_current_addr < tb_first_free_address())) {
+        // Don't allow overwriting Toboot itself.
+        if (fl_current_addr < tb_first_free_address()) {
             set_state(dfuERROR, errADDRESS);
             return false;
         }
