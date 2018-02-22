@@ -17,19 +17,13 @@ compiling OpenOCD from source (which can be done with the
 [build-openocd.sh](build-openocd.sh) script). 
 
 The tutorial I used can be found [here][adafruit-tut], though setting up 
-networking is out of scope for that tutorial. Follow the tutorial until 
-the step after installing OpenOCD, at which point you should run
-this command:
-
-```bash
-sudo cp raspberrypi*-native.cfg /usr/local/share/openocd/scripts/interface/
-```
+networking is out of scope for that tutorial.
 
 This installs all of the necessary configurations to use two-wire debugging to
-flash a `tomu`. After installing OpenOCD you can flash your `tomu` by placing
-the firmware you wish to flash in the current directory with the name
-`program.bin`, and running `sudo openocd -f tomu.conf`. You can also do the
-configuration manually if you wish.
+flash a `tomu`. After installing OpenOCD you can flash your `tomu` by running
+`sudo openocd -f raspberrypi-native.conf -f tomu-flash.conf`.
+This will flash the prebuilt dfu firmware (located at /prebuilt/toboot.bin) to the tomu.
+You may need to write your own interface configuration file for other devices.
 
 [adafruit-tut]: https://learn.adafruit.com/programming-microcontrollers-using-openocd-on-raspberry-pi
 
@@ -46,7 +40,8 @@ solder pads. The colour coding is `red=vcc`, `blue=swdio`, `green=swdclk`,
 It is not necessary to solder anything to your `tomu` in order to flash it. If
 you have a steady hand you can just hold the wires in place for the couple of
 seconds it takes to flash a board. I super-glued some breadboard wires together
-to ensure the spacing is constant.
+to ensure the spacing is constant. You can loop openocd invocations by adding
+`watch` in front of your flashing command. e.g. `watch openocd -f ...`
 
 The pins used by the configuration files for the Raspberry Pi in this directory
 for two-wire debugging are pins `24` and `25` for `swdio` and `swclk`
@@ -76,7 +71,7 @@ For wiring up the Discovery/Nucleo, follow the picture. The coloring of the pins
 [stmnucleo]: http://www.st.com/en/evaluation-tools/stm32-mcu-nucleo.html?querycriteria=productId=LN1847
 [cortexdebug]: http://www2.keil.com/coresight/coresight-connectors/
 
-After connecting, place the firmware that you want to flash in this directory under the name `program.bin` and run:
+After connecting, run:
 ```
-openocd -f tomu_st.conf
+openocd -f interface/stlink-v2.cfg -f tomu-flash.conf
 ```
