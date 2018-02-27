@@ -204,7 +204,7 @@ static int test_application_invalid(const struct toboot_configuration *cfg)
 {
     extern uint32_t __ram_start__;
     extern uint32_t __ram_end__;
-    extern uint32_t __app_start__;
+    extern uint32_t __bl_end__;
     extern uint32_t __app_end__;
 
     (void)cfg;
@@ -214,10 +214,10 @@ static int test_application_invalid(const struct toboot_configuration *cfg)
     if (appVectors[0] > (uint32_t)&__ram_end__)
         return 1;
 
-    // Make sure the entrypoint is in flash
-    if (appVectors[1] < (uint32_t)&__app_start__)
+    // Make sure the entrypoint is in flash, after Toboot
+    if (appVectors[1] < (uint32_t)&__bl_end__)
         return 1;
-    if (appVectors[1] <= (uint32_t)&__app_end__)
+    if (appVectors[1] >= (uint32_t)&__app_end__)
         return 1;
 
     return 0;
