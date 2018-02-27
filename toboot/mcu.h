@@ -4608,6 +4608,17 @@ static inline void NVIC_DisableIRQ(IRQn_Type IRQn)
     NVIC->ICER[0] = (1 << ((uint32_t)(IRQn) & 0x1F));
 }
 
+#define NVIC_AIRCR_VECTKEY    (0x5FA << 16)   /*!< AIRCR Key for write access   */
+#define NVIC_SYSRESETREQ            2         /*!< System Reset Request         */
+
+__attribute__((noreturn))
+static inline void NVIC_SystemReset(void)
+{
+  SCB->AIRCR  = (NVIC_AIRCR_VECTKEY | (SCB->AIRCR & (0x700)) | (1<<NVIC_SYSRESETREQ)); /* Keep priority group unchanged */
+  asm("dsb");                                                                          /* Ensure completion of memory access */
+  while(1);                                                                            /* wait until reset */
+}
+
 /** \brief  Reset the watchdog
     Reset the watchdog timer to prevent the system from rebooting for another while.
  */
