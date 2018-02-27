@@ -11,7 +11,6 @@ LDSCRIPT   = ../tomu.ld
 DBG_CFLAGS = -ggdb -g -DDEBUG -Wall
 DBG_LFLAGS = -ggdb -g -Wall
 CFLAGS     = $(ADD_CFLAGS) \
-			 -DTOBOOT_APP_FLAGS=0x00006fb0 \
              -Wall -Wextra \
              -mcpu=cortex-m0plus -mfloat-abi=soft -mthumb \
              -ffunction-sections -fdata-sections -fno-common \
@@ -24,7 +23,7 @@ LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
 
 OBJ_DIR    = .obj
 
-CSOURCES   = $(wildcard *.c)
+CSOURCES   = main.c
 CPPSOURCES = $(wildcard *.cpp)
 ASOURCES   = $(wildcard *.S)
 COBJS      = $(addprefix $(OBJ_DIR)/, $(notdir $(CSOURCES:.c=.o)))
