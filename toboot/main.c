@@ -1,5 +1,6 @@
 #include <stdint.h>
-#include "toboot.h"
+#include "toboot-api.h"
+#include "toboot-internal.h"
 #include "mcu.h"
 
 #define AUTOBAUD_TIMER_CLOCK CMU_HFPERCLKEN0_TIMER0
@@ -106,35 +107,36 @@ void __early_init(void)
     start_rtc();
 }
 
-static int test_boot_token(void)
+static int test_boot_token(const struct toboot_configuration *cfg)
 {
+    (void)cfg;
     // If we find a valid boot token in RAM, the application is asking us explicitly
     // to enter DFU mode. This is used to implement the DFU_DETACH command when the app
     // is running.
 
-    return boot_token.magic == BOOTLOADER_ENTER_TOKEN;
+    return boot_token.magic == TOBOOT_FORCE_ENTRY_MAGIC;
 }
 
-static void busy_wait(int count) {
+static void busy_wait(int count)
+{
     int i;
-    for (i = 0; i < count+20000; i++)
+    for (i = 0; i < count + 20000; i++)
         asm("nop");
 }
 
-#define READ_CAP0B()   (GPIO->P[4].DIN & (1 << 12))
+#define READ_CAP0B() (GPIO->P[4].DIN & (1 << 12))
 #define TOGGLE_CAP1A() (GPIO->P[2].DOUTTGL = (1 << 1))
 
-int test_pin_short(void)
+int test_pin_short(const struct toboot_configuration *cfg)
 {
     int samples[4];
-    extern uint32_t __app_start__;
 
     // If the outer pins on the edge connector are shorted, enter the bootloader.
     // We want to test CAP1A (PC1) and CAP0B (PE12).
 
-    // If the lower 16 bits of 0x4094 are 0x70b0, don't allow
-    // us to enter the bootloader this way.  This is a security lockout.
-    if (((*((uint32_t *)(((uint32_t)&__app_start__) + 0x94))) & TOBOOT_CFG_MAGIC_MASK) == TOBOOT_CFG_MAGIC) {
+    // Test if thos entry method has been locked out.
+    if (cfg->lock_entry == TOBOOT_LOCKOUT_MAGIC)
+    {
         return 0;
     }
 
@@ -169,57 +171,97 @@ int test_pin_short(void)
     return 0;
 }
 
-static int should_enter_bootloader(void)
+static int test_reset_cause(const struct toboot_configuration *cfg)
 {
-    extern uint32_t __ram_start__;
-    extern uint32_t __ram_end__;
-    extern uint32_t __app_start__;
-    extern uint32_t __app_end__;
-
-    // Reset the boot token if we've just been powered up for the first time
+    int result = 0;
     if (RMU->RSTCAUSE & RMU_RSTCAUSE_PORST)
     {
         boot_token.magic = 0;
         boot_token.boot_count = 0;
         boot_token.board_model = 0x23;
+
+        // If the user has requested that we enter Toboot at poweron,
+        // then do so.
+        if (cfg->config & TOBOOT_CONFIG_FLAG_POWERON_ENTER)
+            result = 1;
     }
+
     // Reset the "RSTCAUSE" value (EFM32HG-RM 9.3.1)
     RMU->CMD |= RMU_CMD_RCCLR;
     EMU->AUXCTRL |= EMU_CTRL_EMVREG;
     EMU->AUXCTRL &= ~EMU_CTRL_EMVREG;
 
+    return result;
+}
+
+static int test_boot_failures(const struct toboot_configuration *cfg)
+{
+    (void)cfg;
+    return boot_token.boot_count >= 3;
+}
+
+static int test_application_invalid(const struct toboot_configuration *cfg)
+{
+    extern uint32_t __ram_start__;
+    extern uint32_t __ram_end__;
+    extern uint32_t __bl_end__;
+    extern uint32_t __app_end__;
+
+    (void)cfg;
+    // Make sure the stack pointer is in RAM.
+    if (appVectors[0] < (uint32_t)&__ram_start__)
+        return 1;
+    if (appVectors[0] > (uint32_t)&__ram_end__)
+        return 1;
+
+    // Make sure the entrypoint is in flash, after Toboot
+    if (appVectors[1] < (uint32_t)&__bl_end__)
+        return 1;
+    if (appVectors[1] >= (uint32_t)&__app_end__)
+        return 1;
+
+    return 0;
+}
+
+static int should_enter_bootloader(const struct toboot_configuration *cfg)
+{
+    // Reset the boot token if we've just been powered up for the first time
+    if (test_reset_cause(cfg))
+    {
+        bootloader_reason = COLD_BOOT_CONFIGURATION_FLAG;
+        return 1;
+    }
+
     // If the special magic number is present, enter the bootloader
-    if (test_boot_token())
+    if (test_boot_token(cfg))
     {
         bootloader_reason = BOOT_TOKEN_PRESENT;
         return 1;
     }
 
     // If the user is holding the button down
-    if (test_pin_short())
+    if (test_pin_short(cfg))
     {
         bootloader_reason = BUTTON_HELD_DOWN;
         return 1;
     }
 
     // If we've failed to boot many times, enter the bootloader
-    if (boot_token.boot_count >= 3)
+    if (test_boot_failures(cfg))
     {
         bootloader_reason = BOOT_FAILED_TOO_MANY_TIMES;
         return 1;
     }
 
-    // Otherwise, if the application appears valid (i.e. stack is in a sane
-    // place, and the program counter is in flash,) boot to it
-    if (((appVectors[0] >= (uint32_t)&__ram_start__) && (appVectors[0] <= (uint32_t)&__ram_end__)) && ((appVectors[1] >= (uint32_t)&__app_start__) && (appVectors[1] <= (uint32_t)&__app_end__)))
+    // If there is no valid program, enter the bootloader
+    if (test_application_invalid(cfg))
     {
-        bootloader_reason = NOT_ENTERING_BOOTLOADER;
-        return 0;
+        bootloader_reason = NO_PROGRAM_PRESENT;
+        return 1;
     }
 
-    // If there is no valid program, enter the bootloader
-    bootloader_reason = NO_PROGRAM_PRESENT;
-    return 1;
+    bootloader_reason = NOT_ENTERING_BOOTLOADER;
+    return 0;
 }
 
 __attribute__((noreturn)) static void boot_app(void)
@@ -249,10 +291,7 @@ __attribute__((noreturn)) static void boot_app(void)
         ;
     // Switch to default cpu clock.
     CMU->CMD = CMU_CMD_HFCLKSEL_HFRCO;
-    CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS
-                  | CMU_OSCENCMD_AUXHFRCODIS
-                  | CMU_OSCENCMD_LFRCODIS
-                  | CMU_OSCENCMD_USHFRCODIS;
+    CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS | CMU_OSCENCMD_AUXHFRCODIS | CMU_OSCENCMD_LFRCODIS | CMU_OSCENCMD_USHFRCODIS;
     CMU->USBCRCTRL = _CMU_USBCRCTRL_RESETVALUE;
 
     // Reset clock registers used
@@ -288,7 +327,9 @@ __attribute__((noreturn)) static void boot_app(void)
 
 __attribute__((noreturn)) void bootloader_main(void)
 {
-    if (should_enter_bootloader())
+    const struct toboot_configuration *cfg = tb_get_config();
+
+    if (should_enter_bootloader(cfg))
     {
         boot_token.magic = 0;
         boot_token.boot_count = 0;

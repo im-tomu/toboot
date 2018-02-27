@@ -26,6 +26,7 @@ SECTIONS
     .text : ALIGN(4) SUBALIGN(4) {
         . = 0;
         KEEP(*(.vectors))
+        KEEP(*(.toboot_configuration))
         *(.startup*)
     } > bl_flash = 0xFF
     _eflash = .;

@@ -11,7 +11,7 @@
 
 MEMORY
 {
-  FLASH (rx) : ORIGIN = 0x00002000, LENGTH = 0xE000
+  FLASH (rx) : ORIGIN = 0x00004000, LENGTH = 0xC000
   RAM (rwx)  : ORIGIN = 0x20000000 + 8, LENGTH = 0x2000 - 8
 }
 
@@ -62,6 +62,7 @@ SECTIONS
   __exidx_end = .;
 
   __etext = .;
+  booster_data = .;
 
   toboot_runtime = ORIGIN(RAM) - 8;
 
@@ -139,4 +140,4 @@ SECTIONS
 
   /* Check if FLASH usage exceeds FLASH size */
   ASSERT( LENGTH(FLASH) >= (__etext + SIZEOF(.data)), "FLASH memory overflowed !")
-}
+ }

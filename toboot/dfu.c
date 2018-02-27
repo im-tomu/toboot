@@ -22,10 +22,11 @@
  */
 
 #include <stdbool.h>
+#include "toboot-api.h"
+#include "toboot-internal.h"
 #include "mcu.h"
 #include "usb_dev.h"
 #include "dfu.h"
-#include "toboot.h"
 
 // Internal flash-programming state machine
 static unsigned fl_current_addr = 0;
@@ -34,6 +35,35 @@ static enum {
     flsERASING,
     flsPROGRAMMING
 } fl_state;
+
+static struct toboot_state {
+    // Version number of the program being loaded:
+    //  0 (legacy)
+    //  1 (toboot v1)
+    //  2 (toboot v2)
+    uint8_t version;
+
+    // When clearing, first ensure these sectors are cleared prior to updating
+    uint32_t clear_lo;
+    uint32_t clear_hi;
+
+    // The current block we're clearing
+    uint32_t clear_current;
+
+    // This is the address we'll start programming/erasing from after clearing
+    uint32_t next_addr;
+
+    enum {
+        /// Toboot has just started
+        tbsIDLE,
+
+        /// Secure erase memory is being cleared
+        tbsCLEARING,
+
+        /// New image is being loaded
+        tbsLOADING,
+    } state;
+} tb_state;
 
 static dfu_state_t dfu_state = dfuIDLE;
 static dfu_status_t dfu_status = OK;
@@ -106,34 +136,68 @@ ftfl_busy_wait();
 
 static uint32_t address_for_block(unsigned blockNum)
 {
-    // Legacy applications live at offset 0x4000.
-    // Applications that know about Toboot will indicate their block
-    // offset by placing a magic byte at offset 0x98.
-    // Ordinarily this would be the address offset for Vector98 (IRQ 22),
-    // but since there are only 20 IRQs on the EFM32HG, there are three
-    // 32-bit values that are unused starting at offset 0x94.
-    // We already use offset 0x94 for "disable boot", so use offset 0x98
-    // in the incoming stream to indicate flags for Toboot.
     static uint32_t starting_offset;
     if (blockNum == 0) {
-        if ((dfu_buffer[0x98 / 4] & TOBOOT_APP_MAGIC_MASK) == TOBOOT_APP_MAGIC) {
-            starting_offset = (dfu_buffer[0x98 / 4] & TOBOOT_APP_PAGE_MASK) >> TOBOOT_APP_PAGE_SHIFT;
+        // Determine Toboot version.
+        if ((dfu_buffer[0x94 / 4] & TOBOOT_V2_MAGIC_MASK) == TOBOOT_V2_MAGIC) {
+            tb_state.version = 2;
+            starting_offset = ((struct toboot_configuration *)&dfu_buffer[0x94 / 4])->start;
         }
+        // V1 used a different offset.
+        else if ((dfu_buffer[0x98 / 4] & TOBOOT_V1_MAGIC_MASK) == TOBOOT_V1_MAGIC) {
+            // Applications that know about Toboot will indicate their block
+            // offset by placing a magic byte at offset 0x98.
+            // Ordinarily this would be the address offset for IRQ 22,
+            // but since there are only 20 IRQs on the EFM32HG, there are three
+            // 32-bit values that are unused starting at offset 0x94.
+            // We already use offset 0x94 for "disable boot", so use offset 0x98
+            // in the incoming stream to indicate flags for Toboot.
+            tb_state.version = 1;
+            starting_offset = (dfu_buffer[0x98 / 4] & TOBOOT_V1_APP_PAGE_MASK) >> TOBOOT_V1_APP_PAGE_SHIFT;
+        }
+        // Legacy programs default to offset 0x4000.
         else {
+            tb_state.version = 0;
             starting_offset = 16;
         }
+
+        // Set the state to "CLEARING", since we're just starting the programming process.
+        tb_state.state = tbsCLEARING;
         starting_offset *= 0x400;
     }
     return starting_offset + (blockNum << 10);
 }
 
+// If requested, erase sectors before loading new code.
+static void pre_clear_next_block(void) {
+
+    // If there is another sector to clear, do that.
+    if (++tb_state.clear_current < 64) {
+        if ((tb_state.clear_current < 32) && (tb_state.clear_lo & (1 << tb_state.clear_current))) {
+            ftfl_begin_erase_sector(tb_state.clear_current);
+            return;
+        }
+        else if ((tb_state.clear_current < 64) && (tb_state.clear_hi & (1 << tb_state.clear_current & 31))) {
+            ftfl_begin_erase_sector(tb_state.clear_current);
+            return;
+        }
+    }
+
+    // No more sectors to clear, continue with programming
+    tb_state.state = tbsLOADING;
+    ftfl_begin_erase_sector(tb_state.next_addr);
+}
+
 void dfu_init(void)
 {
+    tb_state.state = tbsIDLE;
+
+    // Ensure the clocks for the memory are enabled
     CMU->OSCENCMD = CMU_OSCENCMD_AUXHFRCOEN;
     while (!(CMU->STATUS & CMU_STATUS_AUXHFRCORDY))
         ;
 
-    /* Unlock the MSC */
+    // Unlock the MSC
     MSC->LOCK = MSC_UNLOCK_CODE;
 
     // Enable writing to flash
@@ -188,7 +252,60 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
     fl_state = flsERASING;
     fl_current_addr = address_for_block(blockNum);
     fl_num_words = blockLength / 4;
-    ftfl_begin_erase_sector(fl_current_addr);
+
+    // If it's the first block, figure out what we need to do in terms of erasing
+    // data and programming the new file.
+    if (blockNum == 0) {
+        const struct toboot_configuration *old_config = tb_get_config();
+
+        // Don't allow overwriting Toboot itself.
+        if (fl_current_addr < tb_first_free_address()) {
+            set_state(dfuERROR, errADDRESS);
+            return false;
+        }
+
+        // Calculate generation number and hash
+        if (tb_state.version == 2) {
+            struct toboot_configuration *new_config = (struct toboot_configuration *)&dfu_buffer[0x94 / 4];
+
+            // Update generation number
+            new_config->reserved_gen = old_config->reserved_gen + 1;
+
+            // Ensure we know this header is not fake
+            new_config->config &= ~TOBOOT_CONFIG_FAKE;
+
+            // Generate a valid signature
+            tb_sign_config(new_config);
+        }
+
+        // If the old configuration requires that certain blocks be erased, do that.
+        tb_state.clear_hi = old_config->erase_mask_hi;
+        tb_state.clear_lo = old_config->erase_mask_lo;
+        tb_state.clear_current = 0;
+
+        uint32_t i;
+        // Ensure we don't erase Toboot itself
+        for (i = 0; i < tb_first_free_sector(); i++) {
+            if (i < 32)
+                tb_state.clear_lo &= ~(1 << i);
+            else
+                tb_state.clear_hi &= ~(1 << i);
+        }
+
+        // IF we still have sectors to clear, do that.  Otherwise,
+        // go straight into loading the program.
+        if (tb_state.clear_lo || tb_state.clear_hi) {
+            tb_state.state = tbsCLEARING;
+            tb_state.next_addr = fl_current_addr;
+            pre_clear_next_block();
+        }
+        else {
+            tb_state.state = tbsLOADING;
+            ftfl_begin_erase_sector(fl_current_addr);
+        }
+    }
+    else
+        ftfl_begin_erase_sector(fl_current_addr);
 
     set_state(dfuDNLOAD_SYNC, OK);
     return true;
@@ -244,9 +361,15 @@ static void fl_state_poll(void)
 
         case flsERASING:
             if (!fl_handle_status(fstat)) {
+                // ?If we're still pre-clearing, continue with that.
+                if (tb_state.state == tbsCLEARING) {
+                    pre_clear_next_block();
+                }
                 // Done! Move on to programming the sector.
-                fl_state = flsPROGRAMMING;
-                ftfl_begin_program_section(fl_current_addr);
+                else {
+                    fl_state = flsPROGRAMMING;
+                    ftfl_begin_program_section(fl_current_addr);
+                }
             }
             break;
 
