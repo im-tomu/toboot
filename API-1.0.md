@@ -54,9 +54,7 @@ The *magic* value allows you to enter Toboot programmatically.  Set this value t
 Toboot Configuration Values
 ---------------------------
 
-The EFM32HG has 21 interrupt vectors, labeled Vector40, Vector44, Vector48, ..., Vector90.  This is not divisible by 4, and so your environment will also reserve Vector94, Vector98, and Vector9C.  Normally these point to a default exception handler, however because these vectors cannot be called we reuse them to act as Toboot configuration values.
-
-Vector94 (located 94 bytes from the start of your program) is the Toboot Configuration Flag.  This configures how Toboot behaves.  It is a 32-bit word with the following format:
+The configuration values for Toboot V1.0 are stored at offset 0x94 from the start of the binary image.  Normally this is where external interrupt vector 21 lives, however the highest interurpt vector on the EFM32HG is 20.  Therefore, Toboot V1.0 uses this word as the Toboot Configuration Flag to configure how Toboot behaves.  It is a 32-bit word with the following format:
 
 ````c++
 0xrrrrLLLL
@@ -66,7 +64,7 @@ Vector94 (located 94 bytes from the start of your program) is the Toboot Configu
 
 If *LLLL* is set to 0x70b0, then users cannot enter Toboot by shorting out the pads.  Use this to lock out firmware uploads, except programmatically.
 
-Vector98 (located 98 bytes from the start of your program) is the Toboot App Flag.  This configures how your app is loaded.  It contains the following format:
+Offset 0x98 is the Toboot App Flag.  This configures how your app is loaded.  It contains the following format:
 
 ````c++
 0xrrSSKKKK
@@ -76,6 +74,4 @@ Vector98 (located 98 bytes from the start of your program) is the Toboot App Fla
 
 The *KKKK* values are the key.  They must be set to 0x6fb0, otherwise the App Configuration Flag is ignored.
 
-Set *SS* to the starting page number to load your program at.  For example, Toboot has this value set to 0x00006fb0, which causes it to be loaded beginning at page 0.  That way, Toboot can be used to reflash itself.
-
-Page sizes are 1024 bytes.  To maintain compatibility with earlier programs, you may want to set this value to 0x00046fb0, which will explicitly cause programs to be loaded at offset 0x4000.
+Set *SS* to the starting page number to load your program at.  Page sizes are 1024 bytes.  To maintain compatibility with earlier programs, you may want to set this value to 0x00106fb0, which will explicitly cause programs to be loaded at offset 0x4000.  Be very careful with this value, because you can use it to overwrite Toboot.  This approach is deprecated in favor of using something like Booster to update Toboot itself.
