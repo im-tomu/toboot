@@ -1,11 +1,7 @@
 Bootloader for [Tomu board](http://tomu.im)
 ===========================================
 
-This repo contains a collection of bootloaders for the [EFM32HG Tomu board](https://github.com/im-tomu/tomu-hardware).
-
-The original bootloader is located under an0042, and contains code from the Silabs appnote describing the inbuilt bootloader that ships on some EFM32HG parts.  It is here for historical interest, and for compatibility with stock EFM32HG utilities.
-
-The current preferred bootloader is Toboot, which implements a DFU device.
+This repo contains Toboot and associated support files for the [EFM32HG Tomu board](https://github.com/im-tomu/tomu-hardware).
 
 Upgrading Toboot
 ----------------
@@ -79,3 +75,8 @@ Building
 --------
 
 Build the bootloader by entering the `toboot/` directory and typing `make`.
+
+Legacy Bootloader
+-----------------
+
+SiLabs AN0042 was the original bootloader.  It requires an IAR compiler to build, as well as custom drivers/software on the host device.  This bootloader is available in the 'an0042' branch, and has been removed from the master branch.  It is here for historical interest, and for compatibility with stock EFM32HG utilities.
