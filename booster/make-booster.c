@@ -8,14 +8,11 @@
 
 #define BOOSTER_BIN "booster.bin"
 
-#define XXH_NO_LONG_LONG
-#define XXH_FORCE_ALIGN_CHECK 0
-#define XXH_FORCE_NATIVE_FORMAT 0
-#define XXH_PRIVATE_API
-#include "xxhash.h"
+#include "booster.h"
 
 int main(int argc, char **argv) {
     int i;
+    struct booster_data booster_data;
 
     if (argc != 3) {
         fprintf(stderr, "Usage: %s [infile] [outfile]\n", argv[0]);
@@ -68,15 +65,11 @@ int main(int argc, char **argv) {
         return 11;
     }
 
-    uint32_t in_size = htole32(stat_buf.st_size);
-    if (sizeof(in_size) != write(outfile_fd, &in_size, sizeof(in_size))) {
-        perror("Unable to write size to output file");
-        return 5;
-    }
+    booster_data.payload_size = htole32(stat_buf.st_size);
+    booster_data.xxhash = htole32(XXH32(toboot_buffer, sizeof(toboot_buffer), BOOSTER_SEED));
 
-    uint32_t in_hash = htole32(XXH32(toboot_buffer, sizeof(toboot_buffer), 0x12343210));
-    if (sizeof(in_hash) != write(outfile_fd, &in_hash, sizeof(in_hash))) {
-        perror("Unable to write hash to output file");
+    if (sizeof(booster_data) != write(outfile_fd, &booster_data, sizeof(booster_data))) {
+        perror("Unable to write booster header to output file");
         return 12;
     }
 
