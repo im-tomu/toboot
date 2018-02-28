@@ -1,14 +1,10 @@
-#include <stdint.h>
-#include <stdbool.h>
+#include "booster.h"
 
 #include "../toboot/mcu.h"
 #include "../toboot/toboot-api.h"
 
-#define XXH_NO_LONG_LONG
-#define XXH_FORCE_ALIGN_CHECK 0
-#define XXH_FORCE_NATIVE_FORMAT 0
-#define XXH_PRIVATE_API
-#include "xxhash.h"
+// Defined in the linker
+extern struct booster_data booster_data;
 
 // Configure Toboot by identifying this as a V2 header.
 // Place the header at page 16, to maintain compatibility with
@@ -18,15 +14,6 @@ __attribute__((used, section(".toboot_header"))) struct toboot_configuration tob
     .start = 16,
     .config = TOBOOT_CONFIG_FLAG_ENABLE_IRQ,
 };
-
-__attribute__((section(".booster"))) struct booster_data
-{
-    uint32_t payload_size;
-    uint32_t xxhash;
-    uint32_t payload[0];
-};
-
-extern struct booster_data booster_data;
 
 __attribute__((section(".toboot_runtime"))) extern struct toboot_runtime toboot_runtime;
 
@@ -108,7 +95,7 @@ void Reset_Handler(void)
     }
 
     // Ensure the hash matches what's expected.
-    if (XXH32(booster_data.payload, booster_data.payload_size, 0x12343210) != booster_data.xxhash)
+    if (XXH32(booster_data.payload, booster_data.payload_size, BOOSTER_SEED) != booster_data.xxhash)
     {
         NVIC_SystemReset();
     }
