@@ -23,7 +23,7 @@ __attribute__((section(".booster"))) struct booster_data
 {
     uint32_t payload_size;
     uint32_t xxhash;
-    uint32_t first_word;
+    uint32_t payload[0];
 };
 
 extern struct booster_data booster_data;
@@ -108,7 +108,7 @@ void Reset_Handler(void)
     }
 
     // Ensure the hash matches what's expected.
-    if (XXH32(&booster_data.first_word, booster_data.payload_size, 0x12343210) != booster_data.xxhash)
+    if (XXH32(booster_data.payload, booster_data.payload_size, 0x12343210) != booster_data.xxhash)
     {
         NVIC_SystemReset();
     }
@@ -132,7 +132,7 @@ void Reset_Handler(void)
 
     bytes_left = booster_data.payload_size;
     target_addr = 0;
-    current_ptr = &booster_data.first_word;
+    current_ptr = &booster_data.payload[0];
 
     while (bytes_left && (target_addr < (uint32_t)&toboot_configuration))
     {
