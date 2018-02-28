@@ -174,15 +174,24 @@ int test_pin_short(const struct toboot_configuration *cfg)
 static int test_reset_cause(const struct toboot_configuration *cfg)
 {
     int result = 0;
-    if (RMU->RSTCAUSE & RMU_RSTCAUSE_PORST)
+    int rstcause = RMU->RSTCAUSE;
+    boot_token.reserved++;
+    if (rstcause & RMU_RSTCAUSE_PORST)
     {
         boot_token.magic = 0;
         boot_token.boot_count = 0;
         boot_token.board_model = 0x23;
+        boot_token.reserved = 0;
+
+        // Add a brief delay, to allow the decoupling caps time to charge.
+        // If we don't pause here on first boot, then subsequent high-current
+        // operations such as USB might cause the chip to brownout and reset,
+        // leading to automatic booting of the application when first inserted.
+        busy_wait(200);
 
         // If the user has requested that we enter Toboot at poweron,
         // then do so.
-        if (cfg->config & TOBOOT_CONFIG_FLAG_POWERON_ENTER)
+        if (!(cfg->config & TOBOOT_CONFIG_FLAG_AUTORUN))
             result = 1;
     }
 
