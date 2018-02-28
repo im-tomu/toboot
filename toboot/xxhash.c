@@ -408,7 +408,7 @@ XXH_errorcode XXH32_update_endian (XXH32_state_t* state, const void* input, size
 
     if (state->memsize) {   /* some data left from previous update */
         XXH_memcpy((BYTE*)(state->mem32) + state->memsize, input, 16-state->memsize);
-        {   const U32* p32 = state->mem32;
+        {   const unsigned* p32 = state->mem32;
             state->v1 = XXH32_round(state->v1, XXH_readLE32(p32, endian)); p32++;
             state->v2 = XXH32_round(state->v2, XXH_readLE32(p32, endian)); p32++;
             state->v3 = XXH32_round(state->v3, XXH_readLE32(p32, endian)); p32++;
