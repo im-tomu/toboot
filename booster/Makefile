@@ -7,7 +7,7 @@ CC         = $(TRGT)gcc
 CXX        = $(TRGT)g++
 OBJCOPY    = $(TRGT)objcopy
 
-LDSCRIPT   = ../tomu.ld
+LDSCRIPT   = tomu.ld
 DBG_CFLAGS = -ggdb -g -DDEBUG -Wall
 DBG_LFLAGS = -ggdb -g -Wall
 CFLAGS     = $(ADD_CFLAGS) \
