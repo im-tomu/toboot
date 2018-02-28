@@ -6,3 +6,8 @@ toboot/toboot.bin
 toboot/toboot.ihex
 toboot/.obj
 .vscode
+booster/booster.bin
+booster/booster.elf
+booster/booster.ihex
+booster/make-booster
+booster/.obj
