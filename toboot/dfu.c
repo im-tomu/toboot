@@ -172,13 +172,13 @@ static uint32_t address_for_block(unsigned blockNum)
 static void pre_clear_next_block(void) {
 
     // If there is another sector to clear, do that.
-    if (++tb_state.clear_current < 64) {
+    while (++tb_state.clear_current < 64) {
         if ((tb_state.clear_current < 32) && (tb_state.clear_lo & (1 << tb_state.clear_current))) {
-            ftfl_begin_erase_sector(tb_state.clear_current);
+            ftfl_begin_erase_sector(tb_state.clear_current * 1024);
             return;
         }
-        else if ((tb_state.clear_current < 64) && (tb_state.clear_hi & (1 << tb_state.clear_current & 31))) {
-            ftfl_begin_erase_sector(tb_state.clear_current);
+        else if ((tb_state.clear_current < 64) && (tb_state.clear_hi & (1 << (tb_state.clear_current & 31)))) {
+            ftfl_begin_erase_sector(tb_state.clear_current * 1024);
             return;
         }
     }
