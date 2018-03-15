@@ -2,6 +2,7 @@ PACKAGE    = toboot
 ADD_CFLAGS =
 ADD_LFLAGS = 
 
+GIT_VERSION= $(shell git describe --tags)
 TRGT      ?= arm-none-eabi-
 CC         = $(TRGT)gcc
 CXX        = $(TRGT)g++
@@ -15,7 +16,8 @@ CFLAGS     = $(ADD_CFLAGS) \
              -Wall -Wextra \
              -mcpu=cortex-m0plus -mfloat-abi=soft -mthumb \
              -ffunction-sections -fdata-sections -fno-common \
-             -fomit-frame-pointer -Os
+             -fomit-frame-pointer -Os \
+             -DGIT_VERSION=u\"$(GIT_VERSION)\" -std=gnu11
 CXXFLAGS   = $(CFLAGS) -std=c++11 -fno-rtti -fno-exceptions
 LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
              -nostartfiles \
