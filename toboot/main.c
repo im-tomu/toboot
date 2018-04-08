@@ -8,7 +8,7 @@
 
 #define RTC_INTERVAL_MSEC 250
 
-static __attribute__((section(".appvectors"))) uint32_t appVectors[64];
+static uint32_t *app_vectors;
 enum bootloader_reason bootloader_reason;
 __attribute__((noreturn)) void updater(void);
 
@@ -218,15 +218,15 @@ static int test_application_invalid(const struct toboot_configuration *cfg)
 
     (void)cfg;
     // Make sure the stack pointer is in RAM.
-    if (appVectors[0] < (uint32_t)&__ram_start__)
+    if (app_vectors[0] < (uint32_t)&__ram_start__)
         return 1;
-    if (appVectors[0] > (uint32_t)&__ram_end__)
+    if (app_vectors[0] > (uint32_t)&__ram_end__)
         return 1;
 
     // Make sure the entrypoint is in flash, after Toboot
-    if (appVectors[1] < (uint32_t)&__bl_end__)
+    if (app_vectors[1] < (uint32_t)&__bl_end__)
         return 1;
-    if (appVectors[1] >= (uint32_t)&__app_end__)
+    if (app_vectors[1] >= (uint32_t)&__app_end__)
         return 1;
 
     return 0;
@@ -278,7 +278,7 @@ __attribute__((noreturn)) static void boot_app(void)
     // Relocate IVT to application flash
     __disable_irq();
     NVIC->ICER[0] = 0xFFFFFFFF;
-    SCB->VTOR = (uint32_t)&appVectors[0];
+    SCB->VTOR = (uint32_t)&app_vectors[0];
 
     // Disable USB
     USB->GAHBCFG = _USB_GAHBCFG_RESETVALUE;
@@ -328,8 +328,8 @@ __attribute__((noreturn)) static void boot_app(void)
         "bx %2 \n\t"
         :
         : "r"(0xFFFFFFFF),
-          "r"(appVectors[0]),
-          "r"(appVectors[1]));
+          "r"(app_vectors[0]),
+          "r"(app_vectors[1]));
     while (1)
         ;
 }
@@ -337,6 +337,7 @@ __attribute__((noreturn)) static void boot_app(void)
 __attribute__((noreturn)) void bootloader_main(void)
 {
     const struct toboot_configuration *cfg = tb_get_config();
+    app_vectors = (uint32_t *)(((uint32_t)cfg) & ~1023);
 
     if (should_enter_bootloader(cfg))
     {
