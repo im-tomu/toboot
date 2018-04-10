@@ -57,11 +57,13 @@ struct toboot_configuration {
 
 /// When running a normal program, you won't want Toboot to run.
 /// However, when developing new software it is handy to have
-/// Toboot run at poweron.  Set this flag to enter Toboot whenever
-/// the system has powered on for the first time.
-#define TOBOOT_CONFIG_FLAG_AUTORUN_MASK        0x02
-#define TOBOOT_CONFIG_FLAG_AUTORUN_SHIFT       1
-#define TOBOOT_CONFIG_FLAG_AUTORUN             (1 << 1)
+/// Toboot run at poweron, instead of jumping straight to your
+/// program.  Set this flag to enter your program whenever the
+/// system has just powered on.
+#define TOBOOT_CONFIG_FLAG_AUTORUN_MASK         0x02
+#define TOBOOT_CONFIG_FLAG_AUTORUN_SHIFT        1
+#define TOBOOT_CONFIG_FLAG_AUTORUN              (1 << 1)
+#define TOBOOT_CONFIG_FLAG_AUTORUN_DISABLED     (0 << 1)
 
 /// When we create a fake header, this flag will be set.  Otherwise,
 /// leave the flag cleared.
