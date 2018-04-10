@@ -66,7 +66,8 @@ struct toboot_configuration {
 #define TOBOOT_CONFIG_FLAG_AUTORUN_DISABLED     (0 << 1)
 
 /// When we create a fake header, this flag will be set.  Otherwise,
-/// leave the flag cleared.
+/// leave the flag cleared.  This field has no meaning in user
+/// applications, and is only used internally.
 #define TOBOOT_CONFIG_FAKE_MASK 0x04
 #define TOBOOT_CONFIG_FAKE_SHIFT 2
 #define TOBOOT_CONFIG_FAKE (1 << 2)
