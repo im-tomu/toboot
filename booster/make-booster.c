@@ -4,7 +4,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#ifdef __APPLE__
+#include <libkern/OSByteOrder.h>
+#define htole32(x) OSSwapHostToLittleInt32(x)
+#else
 #include <endian.h>
+#endif
 
 #define BOOSTER_BIN "booster.bin"
 
