@@ -16,7 +16,8 @@ struct toboot_configuration {
     uint32_t erase_mask_lo; // A bitmask of sectors to erase when updating the program
     uint32_t erase_mask_hi; // A bitmask of sectors to erase when updating the program
     uint32_t reserved_hash; // A hash of the header.  Calculated by Toboot.
-};````
+};
+````
 
 ### Toboot Magic
 
