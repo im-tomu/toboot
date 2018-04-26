@@ -48,6 +48,12 @@ struct device_req {
     uint16_t wLength;
 };
 
+struct usb_string_descriptor_struct {
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+    uint16_t wString[];
+};
+
 #define NUM_USB_BUFFERS           8
 #define VENDOR_ID                 0x1209    // pid.codes
 #define PRODUCT_ID                0x70b1    // Assigned to Tomu project
