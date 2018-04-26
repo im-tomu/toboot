@@ -140,11 +140,6 @@ static const uint8_t config_descriptor[CONFIG_DESC_SIZE] = {
 // referenced by index numbers.  These descriptors are the
 // actual string data
 
-extern const struct usb_string_descriptor_struct usb_string_manufacturer_name
-        __attribute__ ((weak, alias("usb_string_manufacturer_name_default")));
-extern const struct usb_string_descriptor_struct usb_string_product_name
-        __attribute__ ((weak, alias("usb_string_product_name_default")));
-
 static const struct usb_string_descriptor_struct string0 = {
     4,
     3,
@@ -211,17 +206,16 @@ static const struct full_bos full_bos = {
     },
 };
 
-const struct usb_string_descriptor_struct usb_string_manufacturer_name_default = {
+static const struct usb_string_descriptor_struct usb_string_manufacturer_name = {
     2 + MANUFACTURER_NAME_LEN * 2,
     3,
     MANUFACTURER_NAME
 };
-const struct usb_string_descriptor_struct usb_string_product_name_default = {
+struct usb_string_descriptor_struct usb_string_product_name = {
     2 + PRODUCT_NAME_LEN * 2,
     3,
     PRODUCT_NAME
 };
-
 
 // **************************************************************
 //   Descriptors List
