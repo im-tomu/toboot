@@ -2,6 +2,7 @@
 #include "toboot-api.h"
 #include "toboot-internal.h"
 #include "mcu.h"
+#include "usb_desc.h"
 
 #define AUTOBAUD_TIMER_CLOCK CMU_HFPERCLKEN0_TIMER0
 #define BOOTLOADER_USART_CLOCKEN 0
@@ -343,6 +344,12 @@ __attribute__((noreturn)) void bootloader_main(void)
     {
         boot_token.magic = 0;
         boot_token.boot_count = 0;
+
+        // Update the iProduct field to reflect the bootloader reason,
+        // which is described in a specialized product string.
+        extern struct usb_string_descriptor_struct usb_string_product_name;
+        usb_string_product_name.wString[8] += bootloader_reason;
+
         updater();
     }
 
