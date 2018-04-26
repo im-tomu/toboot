@@ -58,8 +58,8 @@ struct usb_string_descriptor_struct {
 #define VENDOR_ID                 0x1209    // pid.codes
 #define PRODUCT_ID                0x70b1    // Assigned to Tomu project
 #define DEVICE_VER                0x0101    // Bootloader version
-#define MANUFACTURER_NAME         {'K','o', 's', 'a', 'g', 'i'}
-#define MANUFACTURER_NAME_LEN     4
+#define MANUFACTURER_NAME         u"Kosagi"
+#define MANUFACTURER_NAME_LEN     sizeof(MANUFACTURER_NAME)-1
 #define PRODUCT_NAME              u"Tomu Bootloader " GIT_VERSION
 #define PRODUCT_NAME_LEN          sizeof(PRODUCT_NAME)-1
 #define EP0_SIZE                  64
