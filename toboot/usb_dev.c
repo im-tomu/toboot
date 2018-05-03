@@ -543,6 +543,7 @@ static void handle_in0(struct usb_dev *dev)
     }
 }
 
+__attribute__ ((section(".startup")))
 void USB_Handler(void)
 {
     uint32_t intsts = USB->GINTSTS & USB->GINTMSK;
