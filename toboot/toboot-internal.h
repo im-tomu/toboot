@@ -44,5 +44,6 @@ const struct toboot_configuration *tb_get_config(void);
 uint32_t tb_config_hash(const struct toboot_configuration *cfg);
 void tb_sign_config(struct toboot_configuration *cfg);
 uint32_t tb_generation(const struct toboot_configuration *cfg);
+int tb_valid_signature_at_page(uint32_t page);
 
 #endif /* TOBOOT_INTERNAL_H_ */

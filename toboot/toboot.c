@@ -30,7 +30,7 @@ void tb_sign_config(struct toboot_configuration *cfg) {
     cfg->reserved_hash = tb_config_hash(cfg);
 }
 
-static int tb_valid_signature_at_page(uint32_t page) {
+int tb_valid_signature_at_page(uint32_t page) {
     const struct toboot_configuration *cfg = (const struct toboot_configuration *)((page * 1024) + 0x94);
     if (cfg->magic != TOBOOT_V2_MAGIC)
         return -1;
