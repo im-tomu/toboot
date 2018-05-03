@@ -70,6 +70,9 @@ __attribute__((section(".data"), noreturn)) static void finish_flashing(void)
 {
     uint32_t vector_addr = (uint32_t)&toboot_configuration;
 
+    // Jump back into the bootloader when we reboot
+    toboot_runtime.magic = TOBOOT_FORCE_ENTRY_MAGIC;
+
     while (MSC->STATUS & MSC_STATUS_BUSY)
         ;
 
