@@ -214,6 +214,8 @@ uint8_t dfu_getstate(void)
 bool dfu_download(unsigned blockNum, unsigned blockLength,
     unsigned packetOffset, unsigned packetLength, const uint8_t *data)
 {
+    uint32_t i;
+
     if (packetOffset + packetLength > DFU_TRANSFER_SIZE ||
         packetOffset + packetLength > blockLength) {
 
@@ -283,7 +285,6 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
         tb_state.clear_lo = old_config->erase_mask_lo;
         tb_state.clear_current = 0;
 
-        uint32_t i;
         // Ensure we don't erase Toboot itself
         for (i = 0; i < tb_first_free_sector(); i++) {
             if (i < 32)
@@ -292,7 +293,22 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
                 tb_state.clear_hi &= ~(1 << i);
         }
 
-        // IF we still have sectors to clear, do that.  Otherwise,
+        // If the newly-loaded program does not conform to Toboot V2.0, then look
+        // for any existing programs on the flash and delete those sectors.
+        // Because of boot priority, we need to ensure that no V2.0 applications
+        // exist on flash.
+        if (tb_state.version < 2) {
+            for (i = tb_first_free_sector(); i < 64; i++) {
+                if (!tb_valid_signature_at_page(i))
+                    continue;
+                if (i < 32)
+                    tb_state.clear_lo |= (1 << i);
+                else
+                    tb_state.clear_hi |= (1 << i);
+            }
+        }
+
+        // If we still have sectors to clear, do that.  Otherwise,
         // go straight into loading the program.
         if (tb_state.clear_lo || tb_state.clear_hi) {
             tb_state.state = tbsCLEARING;
