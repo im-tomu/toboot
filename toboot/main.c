@@ -338,7 +338,7 @@ __attribute__((noreturn)) static void boot_app(void)
 __attribute__((noreturn)) void bootloader_main(void)
 {
     const struct toboot_configuration *cfg = tb_get_config();
-    app_vectors = (uint32_t *)(((uint32_t)cfg) & ~1023);
+    app_vectors = (uint32_t *)(1024 * cfg->start);
 
     if (should_enter_bootloader(cfg))
     {
