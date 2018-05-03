@@ -348,7 +348,7 @@ __attribute__((noreturn)) void bootloader_main(void)
         // Update the iProduct field to reflect the bootloader reason,
         // which is described in a specialized product string.
         extern struct usb_string_descriptor_struct usb_string_product_name;
-        usb_string_product_name.wString[8] += bootloader_reason;
+        usb_string_product_name.wString[17] += bootloader_reason;
 
         updater();
     }
