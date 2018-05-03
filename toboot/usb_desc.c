@@ -224,13 +224,13 @@ struct usb_string_descriptor_struct usb_string_product_name = {
 // This table provides access to all the descriptor data above.
 
 const usb_descriptor_list_t usb_descriptor_list[] = {
-    {0x0100, device_descriptor, sizeof(device_descriptor)},
-    {0x0200, config_descriptor, sizeof(config_descriptor)},
-    {0x0300, (const uint8_t *)&string0, 0},
-    {0x0301, (const uint8_t *)&usb_string_manufacturer_name, 0},
-    {0x0302, (const uint8_t *)&usb_string_product_name, 0},
-    {0x03EE, (const uint8_t *)&usb_string_microsoft, 0},
-    {0x0F00, (const uint8_t *)&full_bos, sizeof(full_bos)},
-    {0x0F01, (const uint8_t *)&landing_url_descriptor, LANDING_PAGE_DESCRIPTOR_SIZE},
-    {0, NULL, 0}
+    {0x0100, sizeof(device_descriptor), device_descriptor},
+    {0x0200, sizeof(config_descriptor), config_descriptor},
+    {0x0300, 0, (const uint8_t *)&string0},
+    {0x0301, 0, (const uint8_t *)&usb_string_manufacturer_name},
+    {0x0302, 0, (const uint8_t *)&usb_string_product_name},
+    {0x03EE, 0, (const uint8_t *)&usb_string_microsoft},
+    {0x0F00, sizeof(full_bos), (const uint8_t *)&full_bos},
+    {0x0F01, LANDING_PAGE_DESCRIPTOR_SIZE, (const uint8_t *)&landing_url_descriptor},
+    {0, 0, NULL}
 };

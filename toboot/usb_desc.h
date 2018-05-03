@@ -73,8 +73,8 @@ extern const uint8_t usb_microsoft_wcid[MSFT_WCID_LEN];
 
 typedef struct {
     uint16_t  wValue;
-    const uint8_t *addr;
     uint16_t  length;
+    const uint8_t *addr;
 } usb_descriptor_list_t;
 
 extern const usb_descriptor_list_t usb_descriptor_list[];
