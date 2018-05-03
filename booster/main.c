@@ -10,7 +10,7 @@ extern struct booster_data booster_data;
 // Place the header at page 16, to maintain compatibility with
 // the serial bootloader and legacy programs.
 __attribute__((used, section(".toboot_header"))) struct toboot_configuration toboot_configuration = {
-    .magic = TOBOOT_V1_MAGIC,
+    .magic = TOBOOT_V2_MAGIC,
     .start = 16,
     .config = TOBOOT_CONFIG_FLAG_ENABLE_IRQ,
 };
