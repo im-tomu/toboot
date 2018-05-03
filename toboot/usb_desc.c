@@ -206,13 +206,16 @@ static const struct full_bos full_bos = {
     },
 };
 
+__attribute__((aligned(4)))
 static const struct usb_string_descriptor_struct usb_string_manufacturer_name = {
-    2 + MANUFACTURER_NAME_LEN * 2,
+    2 + MANUFACTURER_NAME_LEN,
     3,
     MANUFACTURER_NAME
 };
+
+__attribute__((aligned(4)))
 struct usb_string_descriptor_struct usb_string_product_name = {
-    2 + PRODUCT_NAME_LEN * 2,
+    2 + PRODUCT_NAME_LEN,
     3,
     PRODUCT_NAME
 };
