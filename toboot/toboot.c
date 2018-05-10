@@ -79,7 +79,7 @@ const struct toboot_configuration *tb_get_config(void) {
     // Fake V2 magic
     fake_config.magic = TOBOOT_V2_MAGIC;
 
-    if (((*((uint32_t *)(((uint32_t)&__app_start__) + 0x94))) & TOBOOT_V1_MAGIC_MASK) == TOBOOT_V1_MAGIC)
+    if (((*((uint32_t *)(((uint32_t)&__app_start__) + 0x98))) & TOBOOT_V1_MAGIC_MASK) == TOBOOT_V1_MAGIC)
         // Applications that know about Toboot will indicate their block
         // offset by placing a magic byte at offset 0x98.
         // Ordinarily this would be the address offset for IRQ 22,
@@ -87,7 +87,7 @@ const struct toboot_configuration *tb_get_config(void) {
         // 32-bit values that are unused starting at offset 0x94.
         // We already use offset 0x94 for "disable boot", so use offset 0x98
         // in the incoming stream to indicate flags for Toboot.
-        fake_config.start = ((*((uint32_t *)(((uint32_t)&__app_start__) + 0x94))) & TOBOOT_V1_APP_PAGE_MASK) >> TOBOOT_V1_APP_PAGE_SHIFT;
+        fake_config.start = ((*((uint32_t *)(((uint32_t)&__app_start__) + 0x98))) & TOBOOT_V1_APP_PAGE_MASK) >> TOBOOT_V1_APP_PAGE_SHIFT;
     else
         // Default to offset 0x4000
         fake_config.start = 16;

@@ -73,7 +73,7 @@ struct toboot_configuration {
 #define TOBOOT_CONFIG_FAKE (1 << 2)
 
 /// Various magic values describing Toboot configuration headers.
-#define TOBOOT_V1_MAGIC         0x70B0
+#define TOBOOT_V1_MAGIC         0x6fb0
 #define TOBOOT_V1_MAGIC_MASK    0x0000ffff
 #define TOBOOT_V2_MAGIC         0x907070b2
 #define TOBOOT_V2_MAGIC_MASK    0xffffffff
