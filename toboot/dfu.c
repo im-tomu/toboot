@@ -173,13 +173,17 @@ static void pre_clear_next_block(void) {
 
     // If there is another sector to clear, do that.
     while (++tb_state.clear_current < 64) {
-        if ((tb_state.clear_current < 32) && (tb_state.clear_lo & (1 << tb_state.clear_current))) {
-            ftfl_begin_erase_sector(tb_state.clear_current * 1024);
-            return;
+        if (tb_state.clear_current < 32) {
+            if ((tb_state.clear_lo & (1 << tb_state.clear_current))) {
+                ftfl_begin_erase_sector(tb_state.clear_current * 1024);
+                return;
+            }
         }
-        else if ((tb_state.clear_current < 64) && (tb_state.clear_hi & (1 << (tb_state.clear_current & 31)))) {
-            ftfl_begin_erase_sector(tb_state.clear_current * 1024);
-            return;
+        else if (tb_state.clear_current < 64) {
+            if ((tb_state.clear_hi & (1 << (tb_state.clear_current & 31)))) {
+                ftfl_begin_erase_sector(tb_state.clear_current * 1024);
+                return;
+            }
         }
     }
 
@@ -299,12 +303,12 @@ bool dfu_download(unsigned blockNum, unsigned blockLength,
         // exist on flash.
         if (tb_state.version < 2) {
             for (i = tb_first_free_sector(); i < 64; i++) {
-                if (!tb_valid_signature_at_page(i))
+                if (tb_valid_signature_at_page(i) < 0)
                     continue;
                 if (i < 32)
                     tb_state.clear_lo |= (1 << i);
                 else
-                    tb_state.clear_hi |= (1 << i);
+                    tb_state.clear_hi |= (1 << (i - 32));
             }
         }
 
