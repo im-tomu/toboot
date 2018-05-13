@@ -73,7 +73,7 @@ cd ../booster/
 make
 gcc make-booster.c -o make-booster
 ./make-booster ../toboot/toboot.bin toboot-booster.bin
-cp toboot-booster.bin toboot-boster.dfu
+cp toboot-booster.bin toboot-booster.dfu
 dfu-suffix --pid 0x70b1 --vid 0x1209 --add toboot-booster.dfu
 ````
 
