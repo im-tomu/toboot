@@ -424,6 +424,20 @@ static void usb_setup(struct usb_dev *dev)
         usb_lld_ctrl_error(dev);
         return;
 
+    case (WEBUSB_VENDOR_CODE << 8) | 0xC0: // Get WebUSB descriptor
+        if (dev->dev_req.wIndex == 0x0002)
+        {
+            if (dev->dev_req.wValue == 0x0001)
+            {
+                // Return landing page URL descriptor
+                data = (uint8_t*)&landing_url_descriptor;
+                datalen = LANDING_PAGE_DESCRIPTOR_SIZE;
+                break;
+            }
+        }
+        usb_lld_ctrl_error(dev);
+        return;
+
     case 0x0121: // DFU_DNLOAD
         if (dev->dev_req.wIndex > 0)
         {
