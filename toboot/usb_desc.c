@@ -29,7 +29,6 @@
  */
 
 #include "usb_desc.h"
-#include "webusb_defs.h"
 
 // USB Descriptors are binary data which the USB host reads to
 // automatically detect a USB device's capabilities.  The format
@@ -167,15 +166,7 @@ const uint8_t usb_microsoft_wcid[MSFT_WCID_LEN] = {
     0,0,0,0,0,0,                    // Reserved
 };
 
-#ifndef LANDING_PAGE_URL
-#define LANDING_PAGE_URL "dfu.tomu.im"
-#endif
-
-#define LANDING_PAGE_DESCRIPTOR_SIZE (WEBUSB_DT_URL_DESCRIPTOR_SIZE \
-                                    + sizeof(LANDING_PAGE_URL) - 1)
-#define WEBUSB_VENDOR_CODE 2
-
-static const struct webusb_url_descriptor landing_url_descriptor = {
+const struct webusb_url_descriptor landing_url_descriptor = {
     .bLength = LANDING_PAGE_DESCRIPTOR_SIZE,
     .bDescriptorType = WEBUSB_DT_URL,
     .bScheme = WEBUSB_URL_SCHEME_HTTPS,
@@ -234,6 +225,5 @@ const usb_descriptor_list_t usb_descriptor_list[] = {
     {0x0302, 0, (const uint8_t *)&usb_string_product_name},
     {0x03EE, 0, (const uint8_t *)&usb_string_microsoft},
     {0x0F00, sizeof(full_bos), (const uint8_t *)&full_bos},
-    {0x0F01, LANDING_PAGE_DESCRIPTOR_SIZE, (const uint8_t *)&landing_url_descriptor},
     {0, 0, NULL}
 };
