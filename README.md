@@ -6,7 +6,11 @@ Toboot is a DFU-based bootloader for Tomu that supports easy and driver-free fir
 
 ## Using Toboot
 
-Toboot defaults to running at startup, and the lights will flash like this:
+When you insert Tomu, Toboot runs by default.  Some programs (such as the u2f code) set the `TOBOOT_CONFIG_FLAG_AUTORUN` flag, and start running immediately.  To enter Toboot on these devices, short out the two outer pins with tweezers as you insert Tomu:
+
+![Force Entry](media/toboot-force.jpg "Force entry into Toboot")
+
+When Toboot runs, the lights will flash like this:
 
 ![Toboot Pattern](media/toboot-mode.gif?raw=true "Toboot Pattern")
 
