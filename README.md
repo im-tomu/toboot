@@ -52,7 +52,8 @@ There are several reasons why a user might end up in Toboot:
 
 To install Toboot, use the `boosted` files in the [prebuilt/](./prebuilt) directory:
 
-* **Toboot**: Use dfu-util to load [prebuilt/toboot-boosted.dfu](./prebuilt/toboot-boosted.dfu)
+* **Toboot**: Use dfu-util to load [prebuilt/toboot-boosted.dfu](./prebuilt/toboot-boosted.dfu) using:
+`dfu-util -D prebuilt/toboot-boosted.dfu`
 * **AN0042**: Use the serial bootloader to load [prebuilt/toboot-boosted.bin](./prebuilt/toboot-boosted.bin)
 
 Toboot is unable to reflash itself.  This is to prevent partial updates from corrupting the firmware.  Instead, a support program is appended to the start of Toboot, and the entire thing is uploaded as one chunk.
