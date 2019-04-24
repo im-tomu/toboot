@@ -76,6 +76,7 @@ $(OBJ_DIR)/%.o: %.S
 $(CLEAN):
 	$(QUIET) rm -f $(wildcard $(OBJ_DIR)/*.d)
 	$(QUIET) rm -f $(wildcard $(OBJ_DIR)/*.o)
-	$(QUIET) rm -f $(TARGET) $(PACKAGE).bin $(PACKAGE).symbol
+	$(QUIET) rm -rf $(OBJ_DIR)
+	$(QUIET) rm -f $(TARGET) $(PACKAGE).bin $(PACKAGE).ihex
 
 include $(wildcard $(OBJ_DIR)/*.d)
