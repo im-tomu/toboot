@@ -14,7 +14,7 @@ PATH_SEP   = /
 
 ifeq ($(OS),Windows_NT)
 COPY       = copy
-RM         = del
+RM         = del /q
 PATH_SEP   = \\
 endif
 
