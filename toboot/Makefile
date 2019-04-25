@@ -98,9 +98,9 @@ $(OBJ_DIR)/%.o: %.S
 clean:
 	$(QUIET) echo "  RM      $(subst /,$(PATH_SEP),$(wildcard $(OBJ_DIR)/*.d))"
 	-$(QUIET) $(RM) $(subst /,$(PATH_SEP),$(wildcard $(OBJ_DIR)/*.d))
-	$(QUIET) echo "  RM      $(subst /,$(PATH_SEP),$(wildcard $(OBJ_DIR)/*.d))"
-	-$(QUIET) $(RM) $(subst /,$(PATH_SEP),$(wildcard $(OBJ_DIR)/*.o))
-	$(QUIET) echo "  RM      $(TARGET) $(PACKAGE).bin $(PACKAGE).symbol $(PACKAGE).ihex"
-	-$(QUIET) $(RM) $(TARGET) $(PACKAGE).bin $(PACKAGE).symbol $(PACKAGE).ihex
+	$(QUIET) echo "  RM      $(subst /,$(PATH_SEP),$(wildcard $(OBJ_DIR)/*.o)) $(OBJ_DIR)"
+	-$(QUIET) $(RM) $(subst /,$(PATH_SEP),$(wildcard $(OBJ_DIR)/*.o)) $(OBJ_DIR)
+	$(QUIET) echo "  RM      $(TARGET) $(PACKAGE).bin $(PACKAGE).dfu $(PACKAGE).ihex"
+	-$(QUIET) $(RM) $(TARGET) $(PACKAGE).bin $(PACKAGE).dfu $(PACKAGE).ihex
 
 include $(wildcard $(OBJ_DIR)/*.d)
