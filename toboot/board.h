@@ -21,6 +21,11 @@
 #    define BUTTON_DRIVE_PIN 1
 #    define BUTTON_SENSE_PORT 4
 #    define BUTTON_SENSE_PIN 12
+// USB identifiers
+#    define VENDOR_ID                 0x1209    // pid.codes
+#    define PRODUCT_ID                0x70b1    // Assigned to Tomu project
+#    define MANUFACTURER_NAME         u"Kosagi"
+#    define PRODUCT_NAME              u"Tomu Bootloader (0) " GIT_VERSION
 #else
 #    error "Unknown board!"
 #endif
