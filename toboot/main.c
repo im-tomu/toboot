@@ -3,6 +3,7 @@
 #include "toboot-internal.h"
 #include "mcu.h"
 #include "usb_desc.h"
+#include "board.h"
 
 #define AUTOBAUD_TIMER_CLOCK CMU_HFPERCLKEN0_TIMER0
 #define BOOTLOADER_USART_CLOCKEN 0
@@ -18,11 +19,15 @@ void RTC_Handler(void)
     // Clear interrupt flag
     RTC->IFC = RTC_IFC_COMP1 | RTC_IFC_COMP0 | RTC_IFC_OF;
 
+#ifdef LED1_PORT    
     // Toggle the green LED
-    GPIO->P[0].DOUTTGL = (1 << 0);
+    GPIO->P[LED1_PORT].DOUTTGL = (1 << LED1_PIN);
+#endif
 
+#ifdef LED0_PORT    
     // Also toggle the red LED, to make a pattern of flashing lights.
-    GPIO->P[1].DOUTTGL = (1 << 7);
+    GPIO->P[LED0_PORT].DOUTTGL = (1 << LED0_PIN);
+#endif    
 }
 
 /**************************************************************************/ /**
@@ -45,6 +50,13 @@ static void start_rtc(void)
     NVIC_EnableIRQ(RTC_IRQn);
     // Enable RTC
     RTC->CTRL = RTC_CTRL_COMP0TOP | RTC_CTRL_DEBUGRUN | RTC_CTRL_EN;
+}
+
+static void gpio_set_mode(uint8_t port, uint8_t pin, uint8_t mode)
+{
+    volatile uint32_t* mode_reg = &(&GPIO->P[port].MODEL)[pin >> 3];
+    uint8_t mode_offset = (pin & 7) << 2;
+    *mode_reg = (*mode_reg & ~(0xf << mode_offset)) | (mode << mode_offset);
 }
 
 void __early_init(void)
@@ -85,15 +97,16 @@ void __early_init(void)
         ;
 
     // Mux things
-    // Mux PA0 (Green LED)
-    GPIO->P[0].MODEL &= ~_GPIO_P_MODEL_MODE0_MASK;
-    GPIO->P[0].MODEL |= GPIO_P_MODEL_MODE0_WIREDAND;
-    GPIO->P[0].DOUTSET = (1 << 0);
-
-    // Mux PB7 (Red LED)
-    GPIO->P[1].MODEL &= ~_GPIO_P_MODEL_MODE7_MASK;
-    GPIO->P[1].MODEL |= GPIO_P_MODEL_MODE7_WIREDAND;
-    GPIO->P[1].DOUTCLR = (1 << 7);
+#ifdef LED1_PORT
+    // Mux Green LED
+    gpio_set_mode(LED1_PORT, LED1_PIN, GPIO_P_MODEL_MODE0_WIREDAND);
+    GPIO->P[LED1_PORT].DOUTSET = (1 << LED1_PIN);
+#endif
+#ifdef LED0_PORT    
+    // Mux Red LED
+    gpio_set_mode(LED0_PORT, LED0_PIN, GPIO_P_MODEL_MODE0_WIREDAND);
+    GPIO->P[LED0_PORT].DOUTCLR = (1 << LED0_PIN);
+#endif
 
     // Set up the watchdog to reboot us after 15 ms.
     WDOG->CTRL |= WDOG_CTRL_EN;
@@ -125,8 +138,9 @@ static void busy_wait(int count)
         asm("nop");
 }
 
-#define READ_CAP0B() (GPIO->P[4].DIN & (1 << 12))
-#define TOGGLE_CAP1A() (GPIO->P[2].DOUTTGL = (1 << 1))
+
+#define READ_CAP0B() (GPIO->P[BUTTON_SENSE_PORT].DIN & (1 << BUTTON_SENSE_PIN))
+#define TOGGLE_CAP1A() (GPIO->P[BUTTON_DRIVE_PORT].DOUTTGL = (1 << BUTTON_DRIVE_PIN))
 
 int test_pin_short(const struct toboot_configuration *cfg)
 {
@@ -141,16 +155,11 @@ int test_pin_short(const struct toboot_configuration *cfg)
         return 0;
     }
 
-    // Mux PC1 (Outer edge pad)
-    GPIO->P[2].MODEL &= ~_GPIO_P_MODEL_MODE1_MASK;
-    GPIO->P[2].MODEL |= GPIO_P_MODEL_MODE1_PUSHPULL;
-
-    // Mux PE12 (Outer edge pad)
-    GPIO->P[4].MODEH &= ~_GPIO_P_MODEH_MODE12_MASK;
-    GPIO->P[4].MODEH |= GPIO_P_MODEH_MODE12_INPUTPULL;
+    gpio_set_mode(BUTTON_DRIVE_PORT, BUTTON_DRIVE_PIN, GPIO_P_MODEL_MODE0_PUSHPULL);
+    gpio_set_mode(BUTTON_SENSE_PORT, BUTTON_SENSE_PIN, GPIO_P_MODEL_MODE0_INPUTPULL);
     busy_wait(20);
 
-    GPIO->P[2].DOUTSET = (1 << 1);
+    GPIO->P[BUTTON_DRIVE_PORT].DOUTSET = (1 << BUTTON_DRIVE_PIN);
     busy_wait(15);
     samples[0] = READ_CAP0B();
 
@@ -181,7 +190,7 @@ static int test_reset_cause(const struct toboot_configuration *cfg)
     {
         boot_token.magic = 0;
         boot_token.boot_count = 0;
-        boot_token.board_model = 0x23;
+        boot_token.board_model = TOBOOT_BOARD;
         boot_token.reserved = 0;
 
         // Add a brief delay, to allow the decoupling caps time to charge.
