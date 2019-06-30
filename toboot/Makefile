@@ -8,6 +8,7 @@ CC         = $(TRGT)gcc
 OBJCOPY    = $(TRGT)objcopy
 # Target board. Possible values are:
 #   TOMU         The original Tomu board
+#   BAM_03       Buddy-Fox A-10C UFC
 BOARD      ?= TOMU
 
 RM         = rm -rf
