@@ -291,6 +291,7 @@ __attribute__((noreturn)) static void boot_app(void)
 
     // Reset RTC settings.
     RTC->IEN = _RTC_IEN_RESETVALUE;
+    RTC->IFC = _RTC_IFC_MASK;
     RTC->COMP0 = _RTC_COMP0_RESETVALUE;
     RTC->CTRL = _RTC_CTRL_RESETVALUE;
 
