@@ -29,6 +29,7 @@
 // USB features
 #    define ENABLE_WEBUSB
 #    define LANDING_PAGE_URL          "dfu.tomu.im"
+#    define ENABLE_WCID
 #else
 #    error "Unknown board!"
 #endif

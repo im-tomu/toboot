@@ -64,10 +64,12 @@ struct usb_string_descriptor_struct {
 #define NUM_INTERFACE             1
 #define CONFIG_DESC_SIZE          (9+9+9)
 
+#ifdef ENABLE_WCID
 // Microsoft Compatible ID Feature Descriptor
 #define MSFT_VENDOR_CODE    '~'     // Arbitrary, but should be printable ASCII
 #define MSFT_WCID_LEN       40
 extern const uint8_t usb_microsoft_wcid[MSFT_WCID_LEN];
+#endif // ENABLE_WCID
 
 typedef struct {
     uint16_t  wValue;
