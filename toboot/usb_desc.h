@@ -77,6 +77,7 @@ typedef struct {
 
 extern const usb_descriptor_list_t usb_descriptor_list[];
 
+#ifdef ENABLE_WEBUSB
 // WebUSB Landing page URL descriptor
 #define WEBUSB_VENDOR_CODE 2
 
@@ -88,5 +89,6 @@ extern const usb_descriptor_list_t usb_descriptor_list[];
                                     + sizeof(LANDING_PAGE_URL) - 1)
 
 extern const struct webusb_url_descriptor landing_url_descriptor;
+#endif // ENABLE_WEBUSB
 
 #endif

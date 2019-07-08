@@ -26,6 +26,9 @@
 #    define PRODUCT_ID                0x70b1    // Assigned to Tomu project
 #    define MANUFACTURER_NAME         u"Kosagi"
 #    define PRODUCT_NAME              u"Tomu Bootloader (0) " GIT_VERSION
+// USB features
+#    define ENABLE_WEBUSB
+#    define LANDING_PAGE_URL          "dfu.tomu.im"
 #else
 #    error "Unknown board!"
 #endif
