@@ -5,7 +5,6 @@ ADD_LFLAGS =
 GIT_VERSION= $(shell git describe --tags)
 TRGT      ?= arm-none-eabi-
 CC         = $(TRGT)gcc
-CXX        = $(TRGT)g++
 OBJCOPY    = $(TRGT)objcopy
 
 RM         = rm -rf
@@ -28,7 +27,6 @@ CFLAGS     = $(ADD_CFLAGS) \
              -ffunction-sections -fdata-sections -fno-common \
              -fomit-frame-pointer -Os \
              -DGIT_VERSION=u\"$(GIT_VERSION)\" -std=gnu11
-CXXFLAGS   = $(CFLAGS) -std=c++11 -fno-rtti -fno-exceptions
 LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
              -nostartfiles \
              -Wl,--gc-sections \
@@ -37,12 +35,10 @@ LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
 OBJ_DIR    = .obj
 
 CSOURCES   = $(wildcard *.c)
-CPPSOURCES = $(wildcard *.cpp)
 ASOURCES   = $(wildcard *.S)
 COBJS      = $(addprefix $(OBJ_DIR)/, $(notdir $(CSOURCES:.c=.o)))
-CXXOBJS    = $(addprefix $(OBJ_DIR)/, $(notdir $(CPPSOURCES:.cpp=.o)))
 AOBJS      = $(addprefix $(OBJ_DIR)/, $(notdir $(ASOURCES:.S=.o)))
-OBJECTS    = $(COBJS) $(CXXOBJS) $(AOBJS)
+OBJECTS    = $(COBJS) $(AOBJS)
 VPATH      = .
 
 QUIET      = @
@@ -57,7 +53,7 @@ $(OBJECTS): | $(OBJ_DIR)
 
 $(TARGET): $(OBJECTS) $(LDSCRIPT)
 	$(QUIET) echo "  LD       $@"
-	$(QUIET) $(CXX) $(OBJECTS) $(LFLAGS) -o $@
+	$(QUIET) $(CC) $(OBJECTS) $(LFLAGS) -o $@
 
 $(PACKAGE).bin: $(TARGET)
 	$(QUIET) echo "  OBJCOPY  $(PACKAGE).bin"
@@ -84,10 +80,6 @@ $(OBJ_DIR):
 $(COBJS) : $(OBJ_DIR)/%.o : %.c Makefile
 	$(QUIET) echo "  CC       $<	$(notdir $@)"
 	$(QUIET) $(CC) -c $< $(CFLAGS) -o $@ -MMD
-
-$(OBJ_DIR)/%.o: %.cpp
-	$(QUIET) echo "  CXX      $<	$(notdir $@)"
-	$(QUIET) $(CXX) -c $< $(CXXFLAGS) -o $@ -MMD
 
 $(OBJ_DIR)/%.o: %.S
 	$(QUIET) echo "  AS       $<	$(notdir $@)"
