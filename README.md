@@ -24,6 +24,8 @@ While Toboot supports jumping straight to code, it is also possible to take adva
 
 More information on the Toboot API is available in [API.md](API.md).
 
+The API is specified in [toboot-api.h](toboot/toboot-api.h).
+
 ## Watchdog Timer
 
 **Toboot Sets the Watchdog Timer**.  Your program **will** reboot if the watchdog timer isn't cleared within a few tens of milliseconds.  This is to ensure the code returns to the bootloader if you accidentally do something like flash an MP3 file, or try to program the .ihex version.
@@ -100,3 +102,8 @@ Tomu can be powered using the 3.3V pin, so you can create a sort of "programming
 ## Legacy Bootloader
 
 SiLabs AN0042 was the original bootloader.  It requires an IAR compiler to build, as well as custom drivers/software on the host device.  This bootloader is available in the 'an0042' branch, and has been removed from the master branch.  It is here for historical interest, and for compatibility with stock EFM32HG utilities.
+
+## License
+
+This project is broadly licensed under GPL-3.0, except for `toboot-api.h` which
+is Apache-licensed.
