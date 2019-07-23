@@ -35,6 +35,7 @@
 #include <stddef.h>
 #include "dfu.h"
 #include "webusb_defs.h"
+#include "board.h"
 
 struct device_req {
     union {
@@ -56,21 +57,19 @@ struct usb_string_descriptor_struct {
 };
 
 #define NUM_USB_BUFFERS           8
-#define VENDOR_ID                 0x1209    // pid.codes
-#define PRODUCT_ID                0x70b1    // Assigned to Tomu project
 #define DEVICE_VER                0x0101    // Bootloader version
-#define MANUFACTURER_NAME         u"Kosagi"
 #define MANUFACTURER_NAME_LEN     sizeof(MANUFACTURER_NAME)
-#define PRODUCT_NAME              u"Tomu Bootloader (0) " GIT_VERSION
 #define PRODUCT_NAME_LEN          sizeof(PRODUCT_NAME)
 #define EP0_SIZE                  64
 #define NUM_INTERFACE             1
 #define CONFIG_DESC_SIZE          (9+9+9)
 
+#ifdef ENABLE_WCID
 // Microsoft Compatible ID Feature Descriptor
 #define MSFT_VENDOR_CODE    '~'     // Arbitrary, but should be printable ASCII
 #define MSFT_WCID_LEN       40
 extern const uint8_t usb_microsoft_wcid[MSFT_WCID_LEN];
+#endif // ENABLE_WCID
 
 typedef struct {
     uint16_t  wValue;
@@ -80,6 +79,7 @@ typedef struct {
 
 extern const usb_descriptor_list_t usb_descriptor_list[];
 
+#ifdef ENABLE_WEBUSB
 // WebUSB Landing page URL descriptor
 #define WEBUSB_VENDOR_CODE 2
 
@@ -91,5 +91,6 @@ extern const usb_descriptor_list_t usb_descriptor_list[];
                                     + sizeof(LANDING_PAGE_URL) - 1)
 
 extern const struct webusb_url_descriptor landing_url_descriptor;
+#endif // ENABLE_WEBUSB
 
 #endif

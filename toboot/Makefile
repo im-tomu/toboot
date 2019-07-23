@@ -6,6 +6,9 @@ GIT_VERSION= $(shell git describe --tags)
 TRGT      ?= arm-none-eabi-
 CC         = $(TRGT)gcc
 OBJCOPY    = $(TRGT)objcopy
+# Target board. Possible values are:
+#   TOMU         The original Tomu board
+BOARD      ?= TOMU
 
 RM         = rm -rf
 COPY       = cp -a
@@ -26,6 +29,7 @@ CFLAGS     = $(ADD_CFLAGS) \
              -mcpu=cortex-m0plus -mfloat-abi=soft -mthumb \
              -ffunction-sections -fdata-sections -fno-common \
              -fomit-frame-pointer -Os \
+	     -DTOBOOT_BOARD=TOBOOT_BOARD_$(BOARD) \
              -DGIT_VERSION=u\"$(GIT_VERSION)\" -std=gnu11
 LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
              -nostartfiles \

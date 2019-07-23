@@ -145,6 +145,7 @@ static const struct usb_string_descriptor_struct string0 = {
     {0x0409}
 };
 
+#ifdef ENABLE_WCID
 // Microsoft OS String Descriptor. See: https://github.com/pbatard/libwdi/wiki/WCID-Devices
 static const struct usb_string_descriptor_struct usb_string_microsoft = {
     18, 3,
@@ -165,6 +166,9 @@ const uint8_t usb_microsoft_wcid[MSFT_WCID_LEN] = {
     0,0,0,0,0,0,0,0,                // Sub-compatible ID (unused)
     0,0,0,0,0,0,                    // Reserved
 };
+#endif // ENABLE_WCID
+
+#ifdef ENABLE_WEBUSB
 
 const struct webusb_url_descriptor landing_url_descriptor = {
     .bLength = LANDING_PAGE_DESCRIPTOR_SIZE,
@@ -197,6 +201,8 @@ static const struct full_bos full_bos = {
     },
 };
 
+#endif // ENABLE_WEBUSB
+
 __attribute__((aligned(4)))
 static const struct usb_string_descriptor_struct usb_string_manufacturer_name = {
     2 + MANUFACTURER_NAME_LEN,
@@ -223,7 +229,11 @@ const usb_descriptor_list_t usb_descriptor_list[] = {
     {0x0300, 0, (const uint8_t *)&string0},
     {0x0301, 0, (const uint8_t *)&usb_string_manufacturer_name},
     {0x0302, 0, (const uint8_t *)&usb_string_product_name},
+#ifdef ENABLE_WCID
     {0x03EE, 0, (const uint8_t *)&usb_string_microsoft},
+#endif // ENABLE_WCID
+#ifdef ENABLE_WEBUSB
     {0x0F00, sizeof(full_bos), (const uint8_t *)&full_bos},
+#endif // ENABLE_WEBUSB
     {0, 0, NULL}
 };

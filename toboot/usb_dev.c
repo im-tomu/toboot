@@ -412,6 +412,7 @@ static void usb_setup(struct usb_dev *dev)
         usb_lld_ctrl_error(dev);
         return;
 
+#ifdef ENABLE_WCID
     case (MSFT_VENDOR_CODE << 8) | 0xC0: // Get Microsoft descriptor
     case (MSFT_VENDOR_CODE << 8) | 0xC1:
         if (dev->dev_req.wIndex == 0x0004)
@@ -423,7 +424,9 @@ static void usb_setup(struct usb_dev *dev)
         }
         usb_lld_ctrl_error(dev);
         return;
+#endif // ENABLE_WCID
 
+#ifdef ENABLE_WEBUSB
     case (WEBUSB_VENDOR_CODE << 8) | 0xC0: // Get WebUSB descriptor
         if (dev->dev_req.wIndex == 0x0002)
         {
@@ -437,6 +440,7 @@ static void usb_setup(struct usb_dev *dev)
         }
         usb_lld_ctrl_error(dev);
         return;
+#endif // ENABLE_WEBUSB
 
     case 0x0121: // DFU_DNLOAD
         if (dev->dev_req.wIndex > 0)
