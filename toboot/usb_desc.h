@@ -58,8 +58,8 @@ struct usb_string_descriptor_struct {
 
 #define NUM_USB_BUFFERS           8
 #define DEVICE_VER                0x0101    // Bootloader version
-#define MANUFACTURER_NAME_LEN     sizeof(MANUFACTURER_NAME)
-#define PRODUCT_NAME_LEN          sizeof(PRODUCT_NAME)
+#define MANUFACTURER_NAME_LEN     (sizeof(MANUFACTURER_NAME) - 2)
+#define PRODUCT_NAME_LEN          (sizeof(PRODUCT_NAME) - 2)
 #define EP0_SIZE                  64
 #define NUM_INTERFACE             1
 #define CONFIG_DESC_SIZE          (9+9+9)
