@@ -26,6 +26,7 @@
 #    define PRODUCT_ID                0x70b1    // Assigned to Tomu project
 #    define MANUFACTURER_NAME         u"Kosagi"
 #    define PRODUCT_NAME              u"Tomu Bootloader (0) " GIT_VERSION
+#    define REASON_OFFSET             17        // index of reason code in product name
 // USB features
 #    define ENABLE_WEBUSB
 #    define LANDING_PAGE_URL          "dfu.tomu.im"
