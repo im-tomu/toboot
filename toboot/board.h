@@ -4,6 +4,7 @@
 // Board-specific settings
 
 #define TOBOOT_BOARD_TOMU      0x23 // The original Tomu board
+#define TOBOOT_BOARD_BAM_03    0xb3 // Buddy-Fox A-10C UFC Controller
 
 #ifndef TOBOOT_BOARD
 #    define TOBOOT_BOARD TOBOOT_BOARD_TOMU
@@ -30,6 +31,24 @@
 // USB features
 #    define ENABLE_WEBUSB
 #    define LANDING_PAGE_URL          "dfu.tomu.im"
+#    define ENABLE_WCID
+#elif TOBOOT_BOARD == TOBOOT_BOARD_BAM_03
+// Master Caution LED at PD7
+#    define LED0_PORT 3
+#    define LED0_PIN 7
+// Master Caution button is between PB11 and PA2
+#    define BUTTON_DRIVE_PORT 1
+#    define BUTTON_DRIVE_PIN 11
+#    define BUTTON_SENSE_PORT 0
+#    define BUTTON_SENSE_PIN 2
+// USB identifiers
+#    define VENDOR_ID                 0x10c4    // Silicon Labs
+#    define PRODUCT_ID                0x8c8b    // Assigned to Bamseco Oy
+#    define MANUFACTURER_NAME         u"Bamseco Oy"
+#    define PRODUCT_NAME              u"Buddy-Fox A-10C UFC Bootloader"
+// USB features
+#    define ENABLE_WEBUSB
+#    define LANDING_PAGE_URL          "www.buddy-fox.com/fw-bam-03/"
 #    define ENABLE_WCID
 #else
 #    error "Unknown board!"
