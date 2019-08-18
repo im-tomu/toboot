@@ -17,7 +17,7 @@
 // Green LED at PA0
 #    define LED1_PORT 0
 #    define LED1_PIN 0
-// Bootloader is forced by a short between CAP1A (PC1) and CAP1B (PE12)
+// Bootloader is forced by a short between CAP1A (PC1) and CAP0B (PE12)
 #    define BUTTON_DRIVE_PORT 2
 #    define BUTTON_DRIVE_PIN 1
 #    define BUTTON_SENSE_PORT 4
