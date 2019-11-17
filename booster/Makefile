@@ -1,6 +1,7 @@
-PACKAGE    = booster
-ADD_CFLAGS =
-ADD_LFLAGS = 
+PACKAGE      = booster
+ADD_CFLAGS   =
+ADD_CPPFLAGS =
+ADD_LFLAGS   =
 
 TRGT      ?= arm-none-eabi-
 CC         = $(TRGT)gcc
@@ -10,15 +11,18 @@ OBJCOPY    = $(TRGT)objcopy
 LDSCRIPT   = tomu.ld
 DBG_CFLAGS = -ggdb -g -DDEBUG -Wall
 DBG_LFLAGS = -ggdb -g -Wall
-CFLAGS     = $(ADD_CFLAGS) \
+CPPFLAGS   = -D_FORTIFY_SOURCE=2 $(ADD_CPPFLAGS)
+CFLAGS     = $(ADD_CFLAGS) $(CPPFLAGS) \
              -Wall -Wextra \
              -mcpu=cortex-m0plus -mfloat-abi=soft -mthumb \
              -ffunction-sections -fdata-sections -fno-common \
-             -fomit-frame-pointer -Os
+             -fomit-frame-pointer -O2 \
+             -Wformat -Werror=format-security
 CXXFLAGS   = $(CFLAGS) -std=c++11 -fno-rtti -fno-exceptions
 LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
              -nostartfiles \
              -Wl,--gc-sections \
+             -Wl,-z,relro -Wl,-z,now \
              -Wl,--no-warn-mismatch,--script=$(LDSCRIPT),--build-id=none
 
 OBJ_DIR    = .obj
