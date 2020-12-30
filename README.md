@@ -52,11 +52,13 @@ There are several reasons why a user might end up in Toboot:
 
 ## Installing or Upgrading Toboot
 
-To install Toboot, use the `boosted` files in the [prebuilt/](./prebuilt) directory:
+If you have an old toboot that isn't booting after you flashed code, make sure to short pins 1 and 4 as shown above, before plugging tomu in.
 
-* **Toboot**: Use dfu-util to load [prebuilt/toboot-boosted.dfu](./prebuilt/toboot-boosted.dfu) using:
-`dfu-util -D prebuilt/toboot-boosted.dfu`
-* **AN0042**: Use the serial bootloader to load [prebuilt/toboot-boosted.bin](./prebuilt/toboot-boosted.bin)
+To install Toboot, use the `boosted` files in the [prebuilt/](./prebuilt) directory. It's a 2 stage process:
+First, flash Toboot and then flash AN0042 (into the Toboot serial loader). FIXME: what does AN0042 stand for?
+* sudo dfu-util -D [prebuilt/toboot-boosted.dfu](./prebuilt/toboot-boosted.dfu)
+* FIXME: Reboot or not? (seems to work without replug aka reboot)
+* sudo dfu-util -D [prebuilt/toboot-boosted.bin](./prebuilt/toboot-boosted.bin)
 
 Toboot is unable to reflash itself.  This is to prevent partial updates from corrupting the firmware.  Instead, a support program is appended to the start of Toboot, and the entire thing is uploaded as one chunk.
 
