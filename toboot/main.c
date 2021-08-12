@@ -310,13 +310,8 @@ __attribute__((noreturn)) static void boot_app(void)
     while (CMU->SYNCBUSY & CMU_SYNCBUSY_LFACLKEN0)
         ;
 
-    /* Set HFRCO default frequency (14 MHz) */
+    /* Switch back to HFRCO default freq (14 MHz) */
     CMU->HFRCOCTRL = (3 << 8) | ((DEVINFO->HFRCOCAL0 >> 24) & 0xff);
-
-    // Switch to default cpu clock.
-    CMU->CMD |= CMU_CMD_HFCLKSEL_HFRCO;
-    while ((CMU->STATUS & CMU_STATUS_HFRCOSEL) == 0)
-        ;
 
     CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS | CMU_OSCENCMD_AUXHFRCODIS | CMU_OSCENCMD_LFRCODIS | CMU_OSCENCMD_USHFRCODIS;
     CMU->USBCRCTRL = _CMU_USBCRCTRL_RESETVALUE;
