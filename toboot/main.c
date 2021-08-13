@@ -309,10 +309,17 @@ __attribute__((noreturn)) static void boot_app(void)
         ;
     while (CMU->SYNCBUSY & CMU_SYNCBUSY_LFACLKEN0)
         ;
-    // Switch to default cpu clock.
-    CMU->CMD = CMU_CMD_HFCLKSEL_HFRCO;
+
+    /* Switch back to HFRCO default freq (14 MHz) */
+    CMU->HFRCOCTRL = (3 << 8) | ((DEVINFO->HFRCOCAL0 >> 24) & 0xff);
+
     CMU->OSCENCMD = CMU_OSCENCMD_HFXODIS | CMU_OSCENCMD_AUXHFRCODIS | CMU_OSCENCMD_LFRCODIS | CMU_OSCENCMD_USHFRCODIS;
     CMU->USBCRCTRL = _CMU_USBCRCTRL_RESETVALUE;
+
+    GPIO->P[LED0_PORT].MODEL = _GPIO_P_MODEL_RESETVALUE;
+    GPIO->P[LED1_PORT].MODEL = _GPIO_P_MODEL_RESETVALUE;
+    GPIO->P[BUTTON_SENSE_PORT].MODEH = _GPIO_P_MODEL_RESETVALUE;
+    GPIO->P[BUTTON_DRIVE_PORT].MODEL = _GPIO_P_MODEL_RESETVALUE;
 
     // Reset clock registers used
     CMU->HFCORECLKEN0 = CMU_HFCORECLKEN0_LE;
@@ -320,9 +327,6 @@ __attribute__((noreturn)) static void boot_app(void)
     CMU->HFPERCLKEN0 = _CMU_HFPERCLKEN0_RESETVALUE;
     CMU->LFCLKSEL = _CMU_LFCLKSEL_RESETVALUE;
     CMU->LFACLKEN0 = _CMU_LFACLKEN0_RESETVALUE;
-
-    GPIO->P[0].MODEL = _GPIO_P_MODEL_RESETVALUE;
-    GPIO->P[1].MODEL = _GPIO_P_MODEL_RESETVALUE;
 
     // Refresh watchdog right before launching app
     watchdog_refresh();
