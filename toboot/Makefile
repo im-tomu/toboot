@@ -1,6 +1,7 @@
-PACKAGE    = toboot
-ADD_CFLAGS =
-ADD_LFLAGS = 
+PACKAGE      = toboot
+ADD_CFLAGS   =
+ADD_CPPFLAGS =
+ADD_LFLAGS   =
 
 GIT_VERSION= $(shell git describe --tags)
 TRGT      ?= arm-none-eabi-
@@ -24,17 +25,20 @@ endif
 LDSCRIPT   = toboot-bl.ld
 DBG_CFLAGS = -ggdb -g -DDEBUG -Wall
 DBG_LFLAGS = -ggdb -g -Wall
-CFLAGS     = $(ADD_CFLAGS) \
-			 -DTOBOOT_APP_FLAGS=0x00006fb0 \
+CPPFLAGS   = -D_FORTIFY_SOURCE=2 $(ADD_CPPFLAGS)
+CFLAGS     = $(ADD_CFLAGS) $(CPPFLAGS) \
+             -DTOBOOT_APP_FLAGS=0x00006fb0 \
              -Wall -Wextra \
              -mcpu=cortex-m0plus -mfloat-abi=soft -mthumb \
              -ffunction-sections -fdata-sections -fno-common \
-             -fomit-frame-pointer -Os \
-	     -DTOBOOT_BOARD=TOBOOT_BOARD_$(BOARD) \
+             -fomit-frame-pointer -O2 \
+             -Wformat -Werror=format-security \
+             -DTOBOOT_BOARD=TOBOOT_BOARD_$(BOARD) \
              -DGIT_VERSION=u\"$(GIT_VERSION)\" -std=gnu11
 LFLAGS     = $(ADD_LFLAGS) $(CFLAGS) \
              -nostartfiles \
              -Wl,--gc-sections \
+             -Wl,-z,relro -Wl,-z,now \
              -Wl,--no-warn-mismatch,--script=$(LDSCRIPT),--build-id=none
 
 OBJ_DIR    = .obj
